@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:controls="com.fxcomponents.controls.*" 
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:controls="ee.ut.slideplayer.*"
 	backgroundColor="#444444" themeColor="#628CAF" backgroundGradientAlphas="{[0, 0]}">
 	<mx:Script>
 		<![CDATA[
-			
-			[Bindable]
-			private var source:String = "http://www.fxcomponents.com/flash/flv/Babel_trailer.flv";
-			
+
+    import mx.controls.Alert;
+
+    [Bindable]
+		private var videoSource:String = "FrogEyes-ALatexIceAge.flv";
+    [Bindable]
+    private var imageSource2:String = "slaid0.png";
+
 			]]>
 	</mx:Script>
-	<controls:FXVideo width="480" height="360" source="{source}" autoPlay="false" bufferTime="10" /> 
+	<controls:SlidePlayer id="player" width="800" height="600" videoSource="FrogEyes-ALatexIceAge.flv" imageSource="slaid3.png"/>
+  <mx:Label id="label1" width="700" y="360"/>
+  <mx:Button label="Debug" click="label1.text = player.stuff();" x="700" y="360"/>
 </mx:Application>

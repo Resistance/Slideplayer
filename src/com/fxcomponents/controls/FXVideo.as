@@ -4,6 +4,8 @@ import com.fxcomponents.controls.fxvideo.PlayPauseButton;
 import com.fxcomponents.controls.fxvideo.StopButton;
 import com.fxcomponents.controls.fxvideo.VolumeButton;
 
+import ee.ut.slideplayer.SlidePlayer;
+
 import flash.events.ContextMenuEvent;
 import flash.events.MouseEvent;
 import flash.events.ProgressEvent;
@@ -93,10 +95,12 @@ public class FXVideo extends VideoDisplay
      *  Constructor.
      */
 	
-	public function FXVideo() 
+	public function FXVideo(slideplayer:SlidePlayer)
 	{
 		super();
-		
+
+    this.slideplayer = slideplayer;
+
 		textFormat = new TextFormat();
 		
 		var newContextMenu:ContextMenu;
@@ -112,6 +116,8 @@ public class FXVideo extends VideoDisplay
 		
         contextMenu = newContextMenu;
 	}
+
+  private var slideplayer:SlidePlayer;
 	
 	private var textFormat:TextFormat;
 	private var thumbHookedToPlayhead:Boolean = true;
@@ -214,6 +220,7 @@ public class FXVideo extends VideoDisplay
 		addEventListener(MouseEvent.MOUSE_WHEEL, onMouseWheel);
 		addEventListener(ProgressEvent.PROGRESS, onProgress);
 		addEventListener(VideoEvent.PLAYHEAD_UPDATE, onPlayheadUpdate);
+    addEventListener(VideoEvent.PLAYHEAD_UPDATE, slideplayer.onVideoPlayheadUpdate);
 		addEventListener(VideoEvent.STATE_CHANGE, onStateChange);
 		addEventListener(VideoEvent.REWIND, onRewind);
 		addEventListener(VideoEvent.COMPLETE, onComplete);
