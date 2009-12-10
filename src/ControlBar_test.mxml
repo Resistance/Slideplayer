@@ -9,7 +9,7 @@
     Log.addTarget(new TraceTarget());
 
     [Bindable]
-    private var _videoSource:String = "FrogEyes-ALatexIceAge.flv";
+    private var _videoSource:String = "loeng12.flv";
 
     private function attachDetach(controlBar:ControlBar, videoDisplay:VideoDisplay, button:Button):void {
       if (controlBar.videoDisplay == null) {

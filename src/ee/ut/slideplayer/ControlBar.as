@@ -10,6 +10,8 @@ import com.fxcomponents.controls.fxvideo.VolumeButton;
 import flash.events.Event;
 import flash.events.MouseEvent;
 
+import flash.events.ProgressEvent;
+
 import mx.controls.VideoDisplay;
 import mx.controls.videoClasses.VideoPlayer;
 import mx.core.UIComponent;
@@ -38,8 +40,8 @@ public class ControlBar extends UIComponent {
   private var mayUpdatePlayheadSlider:Boolean = true;
 
   public function ControlBar() {
-    //addEventListener(MouseEvent.CLICK, stopPropagationIfVideoDisplayUnset, true);
-    //addEventListener(MouseEvent.MOUSE_DOWN, stopPropagationIfVideoDisplayUnset, true);
+    addEventListener(MouseEvent.CLICK, stopPropagationIfVideoDisplayUnset, true);
+    addEventListener(MouseEvent.MOUSE_DOWN, stopPropagationIfVideoDisplayUnset, true);
   }
 
 	/* Common component methods */
@@ -60,11 +62,7 @@ public class ControlBar extends UIComponent {
 
 		if (!playheadSlider) {
 			playheadSlider = new FXProgressSlider();
-			playheadSlider.maximum = 100;
-			playheadSlider.progress = 100;
-			playheadSlider.value = playheadSlider.maximum / 2;
-			playheadSlider.addEventListener(SliderEvent.THUMB_PRESS, onPlayheadSliderThumbPress);
-			playheadSlider.addEventListener(SliderEvent.THUMB_RELEASE, onPlayheadSliderThumbRelease);
+			playheadSlider.addEventListener(MouseEvent.MOUSE_DOWN, onPlayheadSliderMouseDown);
 			playheadSlider.addEventListener(SliderEvent.CHANGE, onPlayheadSliderChange);
 			addChild(playheadSlider);
 		}
@@ -110,21 +108,22 @@ public class ControlBar extends UIComponent {
 	private function attach():void {
 		log.debug("Attaching");
 
-		_videoDisplay.addEventListener(VideoEvent.PLAYHEAD_UPDATE, onPlayheadUpdate);
-		_videoDisplay.addEventListener(VideoEvent.STATE_CHANGE, onStateChange);
+    _videoDisplay.addEventListener(VideoEvent.STATE_CHANGE, onVideoDisplayStateChange);
+    _videoDisplay.addEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoDisplayPlayheadUpdate);
+    _videoDisplay.addEventListener(ProgressEvent.PROGRESS, onVideoDisplayProgress);
 
 		playPauseButton.state = _videoDisplay.state == VideoPlayer.PLAYING ? "pause" : "play";
 		playheadSlider.maximum = _videoDisplay.totalTime;
+    playheadSlider.progress = 100 * (_videoDisplay.bytesLoaded / _videoDisplay.bytesTotal);
 		playheadSlider.value = _videoDisplay.playheadTime;
-		volumeSlider.value = _videoDisplay.volume * 100;
-		invalidateDisplayList();
+		volumeSlider.value = _videoDisplay.volume;
 	}
 
 	private function detach():void {
 		log.debug("Detaching");
-
-		_videoDisplay.removeEventListener(VideoEvent.STOPPED, onStateChange);
-		_videoDisplay.removeEventListener(VideoEvent.PLAYHEAD_UPDATE, onPlayheadUpdate);
+		_videoDisplay.removeEventListener(VideoEvent.STATE_CHANGE, onVideoDisplayStateChange);
+		_videoDisplay.removeEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoDisplayPlayheadUpdate);
+    _videoDisplay.removeEventListener(ProgressEvent.PROGRESS, onVideoDisplayProgress);
 	}
 
 	/* Properties */
@@ -159,27 +158,21 @@ public class ControlBar extends UIComponent {
 			log.info("Pause");
 			_videoDisplay.pause();
 		}
-		playPauseButton.state = playPauseButton.state == "play" ? "pause" : "play";
 	}
 
 	private function onStopButtonClick(event:MouseEvent):void {
 		log.info("Stop");
 		_videoDisplay.stop();
-		//playPauseButton.state = "play";
 	}
 
-	private function onPlayheadSliderThumbPress(event:SliderEvent):void {
+	private function onPlayheadSliderMouseDown(event:MouseEvent):void {
     log.info("Disabling playead slider updates");
     mayUpdatePlayheadSlider = false;
   }
 
-  private function onPlayheadSliderThumbRelease(event:SliderEvent):void {
-    log.info("Enabling playead slider updates");
-    mayUpdatePlayheadSlider = true;
-  }
-
   private function onPlayheadSliderChange(event:SliderEvent):void {
-    log.info("Seeking to " + playheadSlider.value);
+    log.info("Seek: " + playheadSlider.value + "; enabling playhead slider updates");
+    mayUpdatePlayheadSlider = true;
     _videoDisplay.playheadTime = playheadSlider.value;
   }
 
@@ -190,28 +183,39 @@ public class ControlBar extends UIComponent {
       volumeSlider.value = _videoDisplay.volume = 0;
     } else {
       log.info("Unmute");
-      volumeSlider.value = 100 * (_videoDisplay.volume = volumeBeforeMute);
+      volumeSlider.value = _videoDisplay.volume = volumeBeforeMute;
       volumeBeforeMute = NaN;
     }
   }
 
 	private function onVolumeSliderChange(event:SliderEvent):void {
+    log.info("Volume: " + volumeSlider.value);
+    _videoDisplay.volume = volumeSlider.value;
 	}
 
-	private function onPlayheadUpdate(event:VideoEvent):void {
-		if (mayUpdatePlayheadSlider) {
-			log.info("Updating playhead slider");
-			playheadSlider.value = _videoDisplay.playheadTime;
-		}
+	private function onVideoDisplayStateChange(event:VideoEvent):void {
+    var state:String = _videoDisplay.state;
+    var playing:Boolean = state == VideoPlayer.PLAYING;
+    var paused:Boolean = state == VideoPlayer.PAUSED;
+    var stopped:Boolean = state == VideoPlayer.STOPPED;
+    log.info("State changed: " + state + "; Time: " + _videoDisplay.playheadTime);
+    if (playing || paused || stopped) {
+      playPauseButton.state = playing ? "pause" : "play";      
+    }
 	}
 
-	private function onStateChange(event:VideoEvent):void {
-		if (_videoDisplay.state == VideoPlayer.STOPPED) {
-			log.info("Stopped");
-			playPauseButton.state = "play";
-			playheadSlider.value = 0;
-		}
-	}
+  private function onVideoDisplayPlayheadUpdate(event:VideoEvent):void {
+    if ((_videoDisplay.state == VideoPlayer.PLAYING) && mayUpdatePlayheadSlider) {
+      log.info("Updating playhead slider: " + _videoDisplay.playheadTime);
+      playheadSlider.value = _videoDisplay.playheadTime;
+    } else {
+      log.info("Ignoring playhead slider update: " + _videoDisplay.playheadTime);
+    }
+  }
+
+  private function onVideoDisplayProgress(event:ProgressEvent):void {
+    log.info("Progress: " + _videoDisplay.bytesLoaded + "/" + _videoDisplay.bytesTotal)
+    playheadSlider.progress = 100 * (_videoDisplay.bytesLoaded / _videoDisplay.bytesTotal);
+  }
 }
-
 }
