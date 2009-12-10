@@ -1,17 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:controls="ee.ut.slideplayer.*"
-	backgroundColor="#444444" themeColor="#628CAF" backgroundGradientAlphas="{[0, 0]}">
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:sp="ee.ut.slideplayer.*" layout="absolute">
 	<mx:Script>
 		<![CDATA[
 
-    import mx.controls.Alert;
+    import mx.logging.Log;
+    import mx.logging.targets.TraceTarget;
+
+    Log.addTarget(new TraceTarget());
 
     [Bindable]
-		private var videoSource:String = "FrogEyes-ALatexIceAge.flv";
-    [Bindable]
-    private var imageSource2:String = "slaid0.png"; // not used
+    private var _videoSource:String = "FrogEyes-ALatexIceAge.flv";
+
+    private function attachDetach(controlBar:ControlBar, videoDisplay:VideoDisplay, button:Button):void {
+      if (controlBar.videoDisplay == null) {
+        controlBar.videoDisplay = videoDisplay;
+        button.label = "Detach";
+      } else {
+        controlBar.videoDisplay = null;
+        button.label = "Attach";
+      }
+    }
 
 			]]>
 	</mx:Script>
-	<controls:SlidePlayer id="player" width="100%" height="100%" videoSource="FrogEyes-ALatexIceAge.flv" imageSource="slaid3.png"/>
+  <mx:VideoDisplay id="_videoDisplay" x="0" y="0" width="320" height="240" source="{_videoSource}" autoPlay="false"/>
+  <sp:ControlBar id="_controlBar1" x="0" y="240" width="320" height="21"/>
+  <mx:Button id="_button1" x="320" y="240" label="Attach" click="attachDetach(_controlBar1, _videoDisplay, _button1)"/>
+  <sp:ControlBar id="_controlBar2" x="0" y="261" width="320" height="21"/>
+  <mx:Button id="_button2" x="320" y="261" label="Attach" click="attachDetach(_controlBar2, _videoDisplay, _button2)"/>
 </mx:Application>
