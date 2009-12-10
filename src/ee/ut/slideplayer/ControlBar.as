@@ -21,15 +21,15 @@ import mx.logging.Log;
 public class ControlBar extends UIComponent {
   private var _videoDisplay:VideoDisplay;
 
-  private var playPauseButton:PlayPauseButton = new PlayPauseButton();
+  protected var playPauseButton:PlayPauseButton;
 
-  private var stopButton:StopButton = new StopButton();
+  protected var stopButton:StopButton;
 
-  private var playheadSlider:FXProgressSlider = new FXProgressSlider();
+  protected var playheadSlider:FXProgressSlider;
 
-  private var volumeButton:VolumeButton = new VolumeButton();
+  protected var volumeButton:VolumeButton;
 
-  private var volumeSlider:FXSlider = new FXSlider();
+  protected var volumeSlider:FXSlider;
 
   private var log:ILogger = Log.getLogger("ee.ut.slideplayer.ControlBar");
 
@@ -38,133 +38,74 @@ public class ControlBar extends UIComponent {
   private var mayUpdatePlayheadSlider:Boolean = true;
 
   public function ControlBar() {
-    addEventListener(MouseEvent.CLICK, stopPropagationIfVideoDisplayUnset, true);
-    addEventListener(MouseEvent.MOUSE_DOWN, stopPropagationIfVideoDisplayUnset, true);
-
-    playPauseButton.addEventListener(MouseEvent.CLICK, onPlayPauseButtonClick);
-    stopButton.addEventListener(MouseEvent.CLICK, onStopButtonClick);
-    playheadSlider.addEventListener(SliderEvent.THUMB_PRESS, onPlayheadSliderThumbPress);
-    playheadSlider.addEventListener(SliderEvent.THUMB_RELEASE, onPlayheadSliderThumbRelease);
-    playheadSlider.addEventListener(SliderEvent.CHANGE, onPlayheadSliderChange);
-    volumeButton.addEventListener(MouseEvent.CLICK, onVolumeButtonClick);
+    //addEventListener(MouseEvent.CLICK, stopPropagationIfVideoDisplayUnset, true);
+    //addEventListener(MouseEvent.MOUSE_DOWN, stopPropagationIfVideoDisplayUnset, true);
   }
 
-  private function onPlayheadSliderThumbPress(event:SliderEvent):void {
-    log.info("Disabling playead slider updates");
-    mayUpdatePlayheadSlider = false;
-  }
+	/* Common component methods */
 
-  private function onPlayheadSliderThumbRelease(event:SliderEvent):void {
-    log.info("Enabling playead slider updates");
-    mayUpdatePlayheadSlider = true;
-  }
+	override protected function createChildren():void {
+		if (!playPauseButton) {
+			playPauseButton = new PlayPauseButton();
+			playPauseButton.state = "play";
+			playPauseButton.addEventListener(MouseEvent.CLICK, onPlayPauseButtonClick);
+			addChild(playPauseButton);
+		}
 
-  private function onPlayheadSliderChange(event:SliderEvent):void {
-    log.info("Seeking to " + playheadSlider.value);
-    _videoDisplay.playheadTime = playheadSlider.value;
-  }
+		if (!stopButton) {
+			stopButton = new StopButton();
+			stopButton.addEventListener(MouseEvent.CLICK, onStopButtonClick);
+			addChild(stopButton);
+		}
 
-  private function stopPropagationIfVideoDisplayUnset(event:Event):void {
-    if (_videoDisplay == null)
-      event.stopPropagation();
-  }
+		if (!playheadSlider) {
+			playheadSlider = new FXProgressSlider();
+			playheadSlider.maximum = 100;
+			playheadSlider.progress = 100;
+			playheadSlider.value = playheadSlider.maximum / 2;
+			playheadSlider.addEventListener(SliderEvent.THUMB_PRESS, onPlayheadSliderThumbPress);
+			playheadSlider.addEventListener(SliderEvent.THUMB_RELEASE, onPlayheadSliderThumbRelease);
+			playheadSlider.addEventListener(SliderEvent.CHANGE, onPlayheadSliderChange);
+			addChild(playheadSlider);
+		}
 
-  private static function handleIfVideoDisplayIsSet(listener:Function):Function {
-    return function(event:Event) {
-      if (this._videoDisplay != null)
-        listener(event);
-    };
-  }
+		if (!volumeButton) {
+			volumeButton = new VolumeButton();
+			volumeButton.addEventListener(MouseEvent.CLICK, onVolumeButtonClick);
+			addChild(volumeButton);
+		}
 
-  private function onPlayPauseButtonClick(event:MouseEvent):void {
-    if (playPauseButton.state == "play") {
-      log.info("Play");
-      videoDisplay.play();
-    } else {
-      log.info("Pause");
-      videoDisplay.pause();
-    }
-    playPauseButton.state = playPauseButton.state == "play" ? "pause" : "play";
-    invalidateDisplayList();
-  }
+		if (!volumeSlider) {
+			volumeSlider = new FXSlider();
+			volumeSlider.maximum = 1;
+			volumeSlider.value = volumeSlider.maximum / 2;
+			volumeSlider.addEventListener(SliderEvent.CHANGE, onVolumeSliderChange);
+			addChild(volumeSlider);
+		}
 
-  private function onStopButtonClick(event:MouseEvent):void {
-    log.info("Stop");
-    videoDisplay.stop();
-    playPauseButton.state = "play";
-    invalidateDisplayList();
-  }
+		super.createChildren();
+	}
 
-  private function onVolumeButtonClick(event:MouseEvent):void {
-    if (isNaN(volumeBeforeMute)) {
-      log.info("Mute");
-      volumeBeforeMute = videoDisplay.volume;
-      volumeSlider.value = videoDisplay.volume = 0;
-      invalidateDisplayList();
-    } else {
-      log.info("Unmute");
-      volumeSlider.value = 100 * (videoDisplay.volume = volumeBeforeMute);
-      volumeBeforeMute = NaN;
-      invalidateDisplayList();
-    }
-  }
+	override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
+		super.updateDisplayList(unscaledWidth, unscaledHeight);
 
-  override protected function createChildren():void {
-    super.createChildren();
+		playPauseButton.setActualSize(21, 21);
+		stopButton.setActualSize(21, 21);
+		volumeButton.setActualSize(21, 21);
+		var slidersWidth:Number = unscaledWidth - (playPauseButton.width + stopButton.width + volumeButton.width);
+		var volumeSliderToSlidersWidthRatio:Number = 0.3;
+		var volumeSliderWidth:Number = Math.min(Math.floor(slidersWidth * volumeSliderToSlidersWidthRatio), 100);
+		playheadSlider.setActualSize(slidersWidth - volumeSliderWidth, 9);
+		volumeSlider.setActualSize(volumeSliderWidth, 9);
 
-    playPauseButton.state = "play";
-    playheadSlider.maximum = 100;
-    playheadSlider.progress = 100;
-    playheadSlider.value = playheadSlider.maximum / 2;
-    volumeSlider.maximum = 100;
-    volumeSlider.value = volumeSlider.maximum / 2;
+		playPauseButton.move(0, (unscaledHeight - playPauseButton.height) / 2);
+		stopButton.move(playPauseButton.width, stopButton.y = (unscaledHeight - stopButton.height) / 2);
+		playheadSlider.move(stopButton.x + stopButton.width, (unscaledHeight - playheadSlider.height) / 2);
+		volumeButton.move(playheadSlider.x + playheadSlider.width, (unscaledHeight - volumeButton.height) / 2);
+		volumeSlider.move(volumeButton.x + volumeButton.width, (unscaledHeight - volumeSlider.height) / 2);
+	}
 
-    addChild(playPauseButton);
-    addChild(stopButton);
-    addChild(playheadSlider);
-    addChild(volumeButton);
-    addChild(volumeSlider);
-  }
-
-  override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
-    super.updateDisplayList(unscaledWidth, unscaledHeight);
-
-    playPauseButton.setActualSize(21, 21);
-    stopButton.setActualSize(21, 21);
-    volumeButton.setActualSize(21, 21);
-    var slidersWidth:Number = width - (playPauseButton.width + stopButton.width + volumeButton.width);
-    var volumeSliderToSlidersWidthRatio:Number = 0.3;
-    var volumeSliderWidth:Number = Math.min(Math.floor(slidersWidth * volumeSliderToSlidersWidthRatio), 100);
-    playheadSlider.setActualSize(slidersWidth - volumeSliderWidth, 9);
-    volumeSlider.setActualSize(volumeSliderWidth, 9);
-
-    playPauseButton.x = 0;
-    playPauseButton.y = (height - playPauseButton.height) / 2;
-    stopButton.x = playPauseButton.width;
-    stopButton.y = (height - stopButton.height) / 2;
-    playheadSlider.x = stopButton.x + stopButton.width;
-    playheadSlider.y = (height - playheadSlider.height) / 2;
-    volumeButton.x = playheadSlider.x + playheadSlider.width;
-    volumeButton.y = (height - volumeButton.height) / 2;
-    volumeSlider.x = volumeButton.x + volumeButton.width;
-    volumeSlider.y = (height - volumeSlider.height) / 2;
-  }
-
-  private function onPlayheadUpdate(event:VideoEvent):void {
-    if (mayUpdatePlayheadSlider) {
-      playheadSlider.value = _videoDisplay.playheadTime;
-      invalidateDisplayList();
-    }
-  }
-
-  private function onStateChange(event:VideoEvent):void {
-    if (_videoDisplay.state == VideoPlayer.STOPPED) {
-      log.info("Stopped");
-      playPauseButton.state = "play";
-      playheadSlider.value = 0;
-      invalidateDisplayList();
-    }
-  }
+	/* Our methods */
 
 	private function attach():void {
 		log.debug("Attaching");
@@ -179,27 +120,98 @@ public class ControlBar extends UIComponent {
 		invalidateDisplayList();
 	}
 
-  private function detach():void {
-    log.debug("Detaching");
+	private function detach():void {
+		log.debug("Detaching");
 
-    _videoDisplay.removeEventListener(VideoEvent.STOPPED, onStateChange);
-    _videoDisplay.removeEventListener(VideoEvent.PLAYHEAD_UPDATE, onPlayheadUpdate);
+		_videoDisplay.removeEventListener(VideoEvent.STOPPED, onStateChange);
+		_videoDisplay.removeEventListener(VideoEvent.PLAYHEAD_UPDATE, onPlayheadUpdate);
+	}
+
+	/* Properties */
+
+	public function get videoDisplay():VideoDisplay {
+		return _videoDisplay;
+	}
+
+	public function set videoDisplay(value:VideoDisplay):void {
+		if (value == _videoDisplay)
+			return;
+		if (_videoDisplay != null)
+			detach();
+		_videoDisplay = value;
+		if (_videoDisplay != null)
+			attach();
+		invalidateProperties();
+	}
+
+	/* Event listeners */
+
+	private function stopPropagationIfVideoDisplayUnset(event:Event):void {
+		if (_videoDisplay == null)
+			event.stopPropagation();
+	}
+
+	private function onPlayPauseButtonClick(event:MouseEvent):void {
+		if (playPauseButton.state == "play") {
+			log.info("Play");
+			_videoDisplay.play();
+		} else {
+			log.info("Pause");
+			_videoDisplay.pause();
+		}
+		playPauseButton.state = playPauseButton.state == "play" ? "pause" : "play";
+	}
+
+	private function onStopButtonClick(event:MouseEvent):void {
+		log.info("Stop");
+		_videoDisplay.stop();
+		//playPauseButton.state = "play";
+	}
+
+	private function onPlayheadSliderThumbPress(event:SliderEvent):void {
+    log.info("Disabling playead slider updates");
+    mayUpdatePlayheadSlider = false;
   }
 
-  public function get videoDisplay():VideoDisplay {
-    return _videoDisplay;
+  private function onPlayheadSliderThumbRelease(event:SliderEvent):void {
+    log.info("Enabling playead slider updates");
+    mayUpdatePlayheadSlider = true;
   }
 
-  public function set videoDisplay(value:VideoDisplay):void {
-    if (value == _videoDisplay)
-      return;
-    if (_videoDisplay != null)
-      detach();
-    _videoDisplay = value;
-    if (_videoDisplay != null)
-      attach();
-    invalidateProperties();
+  private function onPlayheadSliderChange(event:SliderEvent):void {
+    log.info("Seeking to " + playheadSlider.value);
+    _videoDisplay.playheadTime = playheadSlider.value;
   }
+
+  private function onVolumeButtonClick(event:MouseEvent):void {
+    if (isNaN(volumeBeforeMute)) {
+      log.info("Mute");
+      volumeBeforeMute = _videoDisplay.volume;
+      volumeSlider.value = _videoDisplay.volume = 0;
+    } else {
+      log.info("Unmute");
+      volumeSlider.value = 100 * (_videoDisplay.volume = volumeBeforeMute);
+      volumeBeforeMute = NaN;
+    }
+  }
+
+	private function onVolumeSliderChange(event:SliderEvent):void {
+	}
+
+	private function onPlayheadUpdate(event:VideoEvent):void {
+		if (mayUpdatePlayheadSlider) {
+			log.info("Updating playhead slider");
+			playheadSlider.value = _videoDisplay.playheadTime;
+		}
+	}
+
+	private function onStateChange(event:VideoEvent):void {
+		if (_videoDisplay.state == VideoPlayer.STOPPED) {
+			log.info("Stopped");
+			playPauseButton.state = "play";
+			playheadSlider.value = 0;
+		}
+	}
 }
 
 }
