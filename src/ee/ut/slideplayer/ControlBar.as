@@ -38,13 +38,13 @@ public class ControlBar extends UIComponent {
 
   private var mayUpdatePlayheadSlider:Boolean = true;
 
-  private var previousVideoDisplay:VideoDisplay;
+  private var previousVideoDisplay:*;
 
   private var videoDisplayChanged:Boolean;
 
   public function ControlBar() {
-    addEventListener(MouseEvent.CLICK, stopPropagationIfVideoDisplayUnset, true);
-    addEventListener(MouseEvent.MOUSE_DOWN, stopPropagationIfVideoDisplayUnset, true);
+    addEventListener(MouseEvent.CLICK, stopPropagationIfNotInteractable, true);
+    addEventListener(MouseEvent.MOUSE_DOWN, stopPropagationIfNotInteractable, true);
   }
 
 	/* Common component methods */
@@ -95,7 +95,7 @@ public class ControlBar extends UIComponent {
         detach();
       if (_videoDisplay)
         attach();
-      previousVideoDisplay = null;
+      previousVideoDisplay = undefined;
       videoDisplayChanged = false;
     }
   }
@@ -151,17 +151,23 @@ public class ControlBar extends UIComponent {
 	public function set videoDisplay(value:VideoDisplay):void {
 		if (value == _videoDisplay)
 			return;
-    if (!previousVideoDisplay)
+    // Record only the first old value if property gets changed multiple times in succession
+    if (previousVideoDisplay === undefined)
       previousVideoDisplay = _videoDisplay;
 		_videoDisplay = value;
-    videoDisplayChanged = true;
+    // Prevent expensive detach/attach if property gets changed back to old value
+    videoDisplayChanged = _videoDisplay != previousVideoDisplay;
 		invalidateProperties();
 	}
 
-	/* Event listeners */
+  public function get interactable():Boolean {
+    return enabled && _videoDisplay;
+  }
 
-	private function stopPropagationIfVideoDisplayUnset(event:Event):void {
-		if (!_videoDisplay)
+  /* Event listeners */
+
+	private function stopPropagationIfNotInteractable(event:Event):void {
+		if (!interactable)
 			event.stopPropagation();
 	}
 
