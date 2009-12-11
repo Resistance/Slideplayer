@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+  <lecture title="loeng12" file="loeng12.flv">
+    <slide time="0" file="slaid0.png"/>
+    <slide time="10" file="slaid1.png"/>
+  </lecture>
+  <lecture title="loeng13" file="loeng13.flv">
+    <slide time="0" file="slaid0.png"/>
+  </lecture>
+</config>

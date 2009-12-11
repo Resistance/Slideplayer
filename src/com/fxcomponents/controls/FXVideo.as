@@ -240,7 +240,7 @@ public class FXVideo extends VideoDisplay
 		playheadSlider.addEventListener(SliderEvent.CHANGE, playhead_onChange);
 		playheadSlider.addEventListener(SliderEvent.THUMB_PRESS, onThumbPress);
 		playheadSlider.addEventListener(SliderEvent.THUMB_RELEASE, onThumbRelease);
-		playheadSlider.addEventListener(SliderEvent.THUMB_RELEASE, slideplayer.onVideoThumbRelease);
+		playheadSlider.addEventListener(SliderEvent.THUMB_RELEASE, slideplayer.onVideoStateChange);
 		playheadSlider.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
 		playheadSlider.addEventListener(SliderEvent.THUMB_DRAG, onThumbDrag);
 		

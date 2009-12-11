@@ -1,20 +1,35 @@
 package ee.ut.slideplayer {
 import com.fxcomponents.controls.FXVideo;
 
+import flash.events.HTTPStatusEvent;
+
 import mx.controls.Alert;
 import mx.controls.Image;
+import mx.controls.VideoDisplay;
+import mx.controls.videoClasses.VideoPlayer;
 import mx.core.UIComponent;
 import mx.events.SliderEvent;
 import mx.events.VideoEvent;
+import mx.logging.ILogger;
+import mx.logging.Log;
+import mx.rpc.events.ResultEvent;
+import mx.rpc.http.HTTPService;
 
 public class SlidePlayer extends UIComponent {
   private var image:Image;
-  private var video:FXVideo;
+  private var video:VideoDisplay;
+  private var controlBar:ControlBar;
 
   private var _videoSource:String;
   private var _imageSource:String;
+  private var _config:String;
+  private var _lectureTitle:String;
+
+  private var configChanged:Boolean;
 
   private var nextImageId:int;
+
+  private var log:ILogger = Log.getLogger("ee.ut.slideplayer.SlidePlayer");
 
   private var imageData:Array = [
     {time:0, source:"slaid0.png"},
@@ -37,27 +52,28 @@ public class SlidePlayer extends UIComponent {
     image = new Image();
     image.width = 640;
     image.height = 480;
-//    image.source = imageSource;
     addChild(image);
 
-    video = new FXVideo(this);
+    video = new VideoDisplay();
     video.width = 120;
     video.height = 90;
     video.source = videoSource;
     video.x = image.width-video.width;
     addChild(video);
+
+    video.addEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoPlayheadUpdate);
+    video.addEventListener(VideoEvent.STATE_CHANGE, onVideoStateChange);
   }
 
   override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
     super.updateDisplayList(unscaledWidth, unscaledHeight);
 
     image.setActualSize(unscaledWidth, unscaledHeight);
-    image.x = 0;
-    image.y = 0;
+    image.move(0, 0);
 
-    video.setActualSize(Math.floor(image.width/4),Math.floor(image.height/4));
-    video.y = image.y;
-    video.x = image.width-video.width;
+//    video.setActualSize(Math.floor(image.width/4),Math.floor(image.height/4));
+    video.setActualSize(320, 240);
+    video.move(image.width-video.width, image.y);
   }
 
   public function stuff():String {
@@ -89,14 +105,72 @@ public class SlidePlayer extends UIComponent {
     }
   }
 
-  public function onVideoThumbRelease(event:SliderEvent):void {
-    for (var i:int = 0; i < imageData.length; i++) {
-      if (video.playheadTime < imageData[i].time) {
-        image.source = imageData[i-1].source;
-        nextImageId = i;
-        break;
+  public function onVideoStateChange(event:VideoEvent):void {
+
+    if (video.state == VideoPlayer.PLAYING || video.state == VideoPlayer.PAUSED) {
+      for (var i:int = 0; i < imageData.length; i++) {
+        if (video.playheadTime < imageData[i].time) {
+          image.source = imageData[i-1].source;
+          nextImageId = i;
+          break;
+        }
       }
     }
+  }
+
+  private function loadConfig():void {
+    var configLoader:HTTPService = new HTTPService();
+    configLoader.url = config;
+    configLoader.method = "get";
+    configLoader.resultFormat = "e4x";
+    configLoader.addEventListener("result", parseLoadedConfig);
+    configLoader.send();
+  }
+
+  private function parseLoadedConfig(event:ResultEvent):void {
+    log.debug("GOT RESULT");
+    var lectures:XMLList = XML(event.result).lecture;
+    for each (var lecture:XML in lectures) {
+      if (lecture.attribute("title") == _lectureTitle) {
+        log.debug(lecture.attribute("title") + ": " + lecture.attribute("file"));
+
+        for each (var slide:XML in lecture) {
+          imageData.push({
+            time:int(slide.attribute("time")),
+            source:slide.attribute("file")}
+          );
+        }
+      }
+    }
+
+    log.debug(imageData.toString());
+  }
+
+  public function get config():String {
+    return _config;
+  }
+
+  public function set config(value:String):void {
+    _config = value;
+    configChanged = true;
+    invalidateProperties();
+  }
+
+  override protected function commitProperties():void {
+    super.commitProperties();
+
+    if (configChanged) {
+      loadConfig();
+      configChanged = false;
+    }
+  }
+
+  public function get lectureTitle():String {
+    return _lectureTitle;
+  }
+
+  public function set lectureTitle(value:String):void {
+    _lectureTitle = value;
   }
 }
 }

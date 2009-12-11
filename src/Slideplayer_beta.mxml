@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:sp="ee.ut.slideplayer.*" layout="absolute">
+	<mx:Script>
+		<![CDATA[
+
+    import mx.logging.Log;
+    import mx.logging.targets.TraceTarget;
+
+    Log.addTarget(new TraceTarget());
+
+			]]>
+	</mx:Script>
+  <sp:SlidePlayer id="slidePlayer" width="100%" height="100%" x="0" y="0" videoSource="loeng12.flv" imageSource="slaid0.png" config="slideplayer-config.xml" lectureTitle="loeng12"/>
+</mx:Application>
