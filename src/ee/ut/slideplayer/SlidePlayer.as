@@ -118,34 +118,6 @@ public class SlidePlayer extends UIComponent {
     }
   }
 
-  private function loadConfig():void {
-    var configLoader:HTTPService = new HTTPService();
-    configLoader.url = config;
-    configLoader.method = "get";
-    configLoader.resultFormat = "e4x";
-    configLoader.addEventListener("result", parseLoadedConfig);
-    configLoader.send();
-  }
-
-  private function parseLoadedConfig(event:ResultEvent):void {
-    log.debug("GOT RESULT");
-    var lectures:XMLList = XML(event.result).lecture;
-    for each (var lecture:XML in lectures) {
-      if (lecture.attribute("title") == _lectureTitle) {
-        log.debug(lecture.attribute("title") + ": " + lecture.attribute("file"));
-
-        for each (var slide:XML in lecture) {
-          imageData.push({
-            time:int(slide.attribute("time")),
-            source:slide.attribute("file")}
-          );
-        }
-      }
-    }
-
-    log.debug(imageData.toString());
-  }
-
   public function get config():String {
     return _config;
   }
@@ -160,7 +132,7 @@ public class SlidePlayer extends UIComponent {
     super.commitProperties();
 
     if (configChanged) {
-      loadConfig();
+//      loadConfig();
       configChanged = false;
     }
   }

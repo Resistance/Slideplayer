@@ -1,14 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:sp="ee.ut.slideplayer.*" layout="absolute">
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:sp="ee.ut.slideplayer.*" layout="absolute" initialize="init();">
+  <mx:Script source="logging.as"/>
 	<mx:Script>
 		<![CDATA[
 
-    import mx.logging.Log;
-    import mx.logging.targets.TraceTarget;
+    import mx.logging.ILogger;
+    import mx.rpc.events.ResultEvent;
 
-    Log.addTarget(new TraceTarget());
+    private var log:ILogger = Log.getLogger("SlidePlayer_beta");
 
-			]]>
+    private var _imageData:Array = [];
+    private var _config:String = "slideplayer-config.xml";
+    private var _lectureTitle:String = "loeng12";
+
+    private function init():void {
+      initializeLogging();
+
+      configLoader.url = _config;
+      configLoader.send();
+    }
+
+    private function parseLoadedConfig(event:ResultEvent):void {
+      log.debug("GOT RESULT");
+      var lectures:XMLList = XML(event.result).lecture;
+      for each (var lecture:XML in lectures) {
+        if (lecture.attribute("title") == _lectureTitle) {
+          log.debug("Lecture: " + lecture.attribute("title") + ": " + lecture.attribute("file"));
+
+          for each (var slide:XML in lecture.slide) {
+            log.debug("Adding slide: " + slide.attribute("file").toString() + " at time " + slide.attribute("time").toString());
+            _imageData.push({
+              time:int(slide.attribute("time")),
+              source:slide.attribute("file")}
+            );
+          }
+        }
+      }
+    }
+
+    ]]>
 	</mx:Script>
-  <sp:SlidePlayer id="slidePlayer" width="100%" height="100%" x="0" y="0" videoSource="loeng12.flv" imageSource="slaid0.png" config="slideplayer-config.xml" lectureTitle="loeng12"/>
+  <mx:HTTPService id="configLoader" method="get" resultFormat="e4x" result="parseLoadedConfig(event)"/>
+  <sp:SlidePlayer id="slidePlayer" width="100%" height="100%" x="0" y="0" videoSource="loeng12.flv" imageSource="slaid0.png"/>
 </mx:Application>
