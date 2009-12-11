@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:sp="ee.ut.slideplayer.*" layout="absolute">
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:sp="ee.ut.slideplayer.*" layout="absolute" initialize="initializeLogging()">
+  <mx:Script source="logging.as"/>
 	<mx:Script>
 		<![CDATA[
-
-    import mx.logging.Log;
-    import mx.logging.targets.TraceTarget;
-
-    Log.addTarget(new TraceTarget());
 
     [Bindable]
     private var _videoSource:String = "loeng12.flv";
@@ -15,7 +11,8 @@
       if (controlBar.videoDisplay == null) {
         controlBar.videoDisplay = videoDisplay;
         button.label = "Detach";
-      } else {
+      }
+      else {
         controlBar.videoDisplay = null;
         button.label = "Attach";
       }

@@ -1,7 +1,6 @@
 package ee.ut.slideplayer {
 import com.fxcomponents.controls.FXProgressSlider;
 import com.fxcomponents.controls.FXSlider;
-import com.fxcomponents.controls.fxvideo.Button;
 import com.fxcomponents.controls.fxvideo.PlayPauseButton;
 import com.fxcomponents.controls.fxvideo.StopButton;
 
@@ -33,11 +32,15 @@ public class ControlBar extends UIComponent {
 
   protected var volumeSlider:FXSlider;
 
-  private var log:ILogger = Log.getLogger("ee.ut.slideplayer.ControlBar");
+  private var log:ILogger = Log.getLogger("ControlBar");
 
   private var volumeBeforeMute:Number = NaN;
 
   private var mayUpdatePlayheadSlider:Boolean = true;
+
+  private var previousVideoDisplay:VideoDisplay;
+
+  private var videoDisplayChanged:Boolean;
 
   public function ControlBar() {
     addEventListener(MouseEvent.CLICK, stopPropagationIfVideoDisplayUnset, true);
@@ -84,17 +87,30 @@ public class ControlBar extends UIComponent {
 		super.createChildren();
 	}
 
-	override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
+  override protected function commitProperties():void {
+    super.commitProperties();
+
+    if (videoDisplayChanged) {
+      if (previousVideoDisplay)
+        detach();
+      if (_videoDisplay)
+        attach();
+      previousVideoDisplay = null;
+      videoDisplayChanged = false;
+    }
+  }
+
+  override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
 		super.updateDisplayList(unscaledWidth, unscaledHeight);
 
-		playPauseButton.setActualSize(21, 21);
-		stopButton.setActualSize(21, 21);
-		volumeButton.setActualSize(21, 21);
+		playPauseButton.setActualSize(playPauseButton.measuredWidth, playPauseButton.measuredHeight);
+		stopButton.setActualSize(stopButton.measuredWidth, stopButton.measuredHeight);
+		volumeButton.setActualSize(volumeButton.measuredWidth, volumeButton.measuredHeight);
 		var slidersWidth:Number = unscaledWidth - (playPauseButton.width + stopButton.width + volumeButton.width);
 		var volumeSliderToSlidersWidthRatio:Number = 0.3;
 		var volumeSliderWidth:Number = Math.min(Math.floor(slidersWidth * volumeSliderToSlidersWidthRatio), 100);
-		playheadSlider.setActualSize(slidersWidth - volumeSliderWidth, 9);
-		volumeSlider.setActualSize(volumeSliderWidth, 9);
+		playheadSlider.setActualSize(slidersWidth - volumeSliderWidth, playheadSlider.measuredHeight);
+		volumeSlider.setActualSize(volumeSliderWidth, volumeSlider.measuredHeight);
 
 		playPauseButton.move(0, (unscaledHeight - playPauseButton.height) / 2);
 		stopButton.move(playPauseButton.width, stopButton.y = (unscaledHeight - stopButton.height) / 2);
@@ -108,22 +124,22 @@ public class ControlBar extends UIComponent {
 	private function attach():void {
 		log.debug("Attaching");
 
-    _videoDisplay.addEventListener(VideoEvent.STATE_CHANGE, onVideoDisplayStateChange);
-    _videoDisplay.addEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoDisplayPlayheadUpdate);
-    _videoDisplay.addEventListener(ProgressEvent.PROGRESS, onVideoDisplayProgress);
-
 		playPauseButton.state = _videoDisplay.state == VideoPlayer.PLAYING ? "pause" : "play";
 		playheadSlider.maximum = _videoDisplay.totalTime;
     playheadSlider.progress = 100 * (_videoDisplay.bytesLoaded / _videoDisplay.bytesTotal);
 		playheadSlider.value = _videoDisplay.playheadTime;
 		volumeSlider.value = _videoDisplay.volume;
+
+    _videoDisplay.addEventListener(VideoEvent.STATE_CHANGE, onVideoDisplayStateChange);
+    _videoDisplay.addEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoDisplayPlayheadUpdate);
+    _videoDisplay.addEventListener(ProgressEvent.PROGRESS, onVideoDisplayProgress);
 	}
 
 	private function detach():void {
 		log.debug("Detaching");
-		_videoDisplay.removeEventListener(VideoEvent.STATE_CHANGE, onVideoDisplayStateChange);
-		_videoDisplay.removeEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoDisplayPlayheadUpdate);
-    _videoDisplay.removeEventListener(ProgressEvent.PROGRESS, onVideoDisplayProgress);
+		previousVideoDisplay.removeEventListener(VideoEvent.STATE_CHANGE, onVideoDisplayStateChange);
+		previousVideoDisplay.removeEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoDisplayPlayheadUpdate);
+    previousVideoDisplay.removeEventListener(ProgressEvent.PROGRESS, onVideoDisplayProgress);
 	}
 
 	/* Properties */
@@ -135,61 +151,60 @@ public class ControlBar extends UIComponent {
 	public function set videoDisplay(value:VideoDisplay):void {
 		if (value == _videoDisplay)
 			return;
-		if (_videoDisplay != null)
-			detach();
+    if (!previousVideoDisplay)
+      previousVideoDisplay = _videoDisplay;
 		_videoDisplay = value;
-		if (_videoDisplay != null)
-			attach();
+    videoDisplayChanged = true;
 		invalidateProperties();
 	}
 
 	/* Event listeners */
 
 	private function stopPropagationIfVideoDisplayUnset(event:Event):void {
-		if (_videoDisplay == null)
+		if (!_videoDisplay)
 			event.stopPropagation();
 	}
 
 	private function onPlayPauseButtonClick(event:MouseEvent):void {
 		if (playPauseButton.state == "play") {
-			log.info("Play");
+			log.debug("Play");
 			_videoDisplay.play();
 		} else {
-			log.info("Pause");
+			log.debug("Pause");
 			_videoDisplay.pause();
 		}
 	}
 
 	private function onStopButtonClick(event:MouseEvent):void {
-		log.info("Stop");
+		log.debug("Stop");
 		_videoDisplay.stop();
 	}
 
 	private function onPlayheadSliderMouseDown(event:MouseEvent):void {
-    log.info("Disabling playead slider updates");
+    log.debug("Disabling playead slider updates");
     mayUpdatePlayheadSlider = false;
   }
 
   private function onPlayheadSliderChange(event:SliderEvent):void {
-    log.info("Seek: " + playheadSlider.value + "; enabling playhead slider updates");
+    log.debug("Seek: " + playheadSlider.value + ". Enabling playhead slider updates");
     mayUpdatePlayheadSlider = true;
     _videoDisplay.playheadTime = playheadSlider.value;
   }
 
   private function onVolumeButtonClick(event:MouseEvent):void {
     if (isNaN(volumeBeforeMute)) {
-      log.info("Mute");
+      log.debug("Mute");
       volumeBeforeMute = _videoDisplay.volume;
       volumeSlider.value = _videoDisplay.volume = 0;
     } else {
-      log.info("Unmute");
+      log.debug("Unmute");
       volumeSlider.value = _videoDisplay.volume = volumeBeforeMute;
       volumeBeforeMute = NaN;
     }
   }
 
 	private function onVolumeSliderChange(event:SliderEvent):void {
-    log.info("Volume: " + volumeSlider.value);
+    log.debug("Volume: " + volumeSlider.value);
     _videoDisplay.volume = volumeSlider.value;
 	}
 
@@ -198,23 +213,24 @@ public class ControlBar extends UIComponent {
     var playing:Boolean = state == VideoPlayer.PLAYING;
     var paused:Boolean = state == VideoPlayer.PAUSED;
     var stopped:Boolean = state == VideoPlayer.STOPPED;
-    log.info("State changed: " + state + "; Time: " + _videoDisplay.playheadTime);
+    log.debug("State changed. cs=" + state + ", es=" + event.state + ", ct=" + _videoDisplay.playheadTime + ", et=" + event.playheadTime);
     if (playing || paused || stopped) {
       playPauseButton.state = playing ? "pause" : "play";      
     }
 	}
 
   private function onVideoDisplayPlayheadUpdate(event:VideoEvent):void {
+    log.debug("Playhead updated. cs=" + _videoDisplay.state + ", es=" + event.state + ", ct=" + _videoDisplay.playheadTime + ", et=" + event.playheadTime);
     if ((_videoDisplay.state == VideoPlayer.PLAYING) && mayUpdatePlayheadSlider) {
-      log.info("Updating playhead slider: " + _videoDisplay.playheadTime);
+      log.debug("Updating playhead slider: " + _videoDisplay.playheadTime);
       playheadSlider.value = _videoDisplay.playheadTime;
     } else {
-      log.info("Ignoring playhead slider update: " + _videoDisplay.playheadTime);
+      log.debug("Ignoring playhead slider update: " + _videoDisplay.playheadTime);
     }
   }
 
   private function onVideoDisplayProgress(event:ProgressEvent):void {
-    log.info("Progress: " + _videoDisplay.bytesLoaded + "/" + _videoDisplay.bytesTotal)
+    log.debug("Progress: " + _videoDisplay.bytesLoaded + "/" + _videoDisplay.bytesTotal);
     playheadSlider.progress = 100 * (_videoDisplay.bytesLoaded / _videoDisplay.bytesTotal);
   }
 }
