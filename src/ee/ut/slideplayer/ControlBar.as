@@ -42,6 +42,8 @@ public class ControlBar extends UIComponent {
 
   private var videoDisplayChanged:Boolean;
 
+  private var controlsInitialized:Boolean;
+
   public function ControlBar() {
     addEventListener(MouseEvent.CLICK, stopPropagationIfNotInteractable, true);
     addEventListener(MouseEvent.MOUSE_DOWN, stopPropagationIfNotInteractable, true);
@@ -121,14 +123,22 @@ public class ControlBar extends UIComponent {
 
 	/* Our methods */
 
-	private function attach():void {
+  private function initializeControls():Boolean {
+    if (controlsInitialized || (_videoDisplay.state == VideoPlayer.DISCONNECTED) || (_videoDisplay.state == VideoPlayer.LOADING))
+      return false;
+    playheadSlider.maximum = _videoDisplay.totalTime;
+    playheadSlider.progress = 100 * (_videoDisplay.bytesLoaded / _videoDisplay.bytesTotal);
+    playheadSlider.value = _videoDisplay.playheadTime;
+    volumeSlider.value = _videoDisplay.volume;
+    controlsInitialized = true;
+    return true;
+  }
+
+  private function attach():void {
 		log.debug("Attaching");
 
-		playPauseButton.state = _videoDisplay.state == VideoPlayer.PLAYING ? "pause" : "play";
-		playheadSlider.maximum = _videoDisplay.totalTime;
-    playheadSlider.progress = 100 * (_videoDisplay.bytesLoaded / _videoDisplay.bytesTotal);
-		playheadSlider.value = _videoDisplay.playheadTime;
-		volumeSlider.value = _videoDisplay.volume;
+    playPauseButton.state = _videoDisplay.state == VideoPlayer.PLAYING ? "pause" : "play";
+    initializeControls();
 
     _videoDisplay.addEventListener(VideoEvent.STATE_CHANGE, onVideoDisplayStateChange);
     _videoDisplay.addEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoDisplayPlayheadUpdate);
@@ -161,7 +171,7 @@ public class ControlBar extends UIComponent {
 	}
 
   public function get interactable():Boolean {
-    return enabled && _videoDisplay;
+    return enabled && _videoDisplay && (_videoDisplay.state != VideoPlayer.DISCONNECTED) && (_videoDisplay.state != VideoPlayer.LOADING);
   }
 
   /* Event listeners */
@@ -223,6 +233,7 @@ public class ControlBar extends UIComponent {
     if (playing || paused || stopped) {
       playPauseButton.state = playing ? "pause" : "play";      
     }
+    initializeControls();
 	}
 
   private function onVideoDisplayPlayheadUpdate(event:VideoEvent):void {
