@@ -256,7 +256,7 @@ public class FXSlider extends UIComponent
 		super.measure();
 		
 		measuredWidth = 200;
-		measuredHeight = 13;
+		measuredHeight = 9;
 	}
 	
 	/** event handlers */

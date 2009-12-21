@@ -11,6 +11,7 @@ import flash.events.MouseEvent;
 
 import flash.events.ProgressEvent;
 
+import mx.controls.Label;
 import mx.controls.VideoDisplay;
 import mx.controls.videoClasses.VideoPlayer;
 import mx.core.UIComponent;
@@ -26,13 +27,15 @@ public class ControlBar extends UIComponent {
 
   protected var stopButton:StopButton;
 
+	protected var playheadTime:Label;
+
   protected var playheadSlider:FXProgressSlider;
 
   protected var volumeButton:VolumeButton;
 
   protected var volumeSlider:FXSlider;
 
-  private var log:ILogger = Log.getLogger("ControlBar");
+  private var log:ILogger = Log.getLogger("ee.ut.slideplayer.Controlbar");
 
   private var volumeBeforeMute:Number = NaN;
 
@@ -43,6 +46,8 @@ public class ControlBar extends UIComponent {
   private var videoDisplayChanged:Boolean;
 
   private var controlsInitialized:Boolean;
+
+	private var seeking:Boolean;
 
   public function ControlBar() {
     addEventListener(MouseEvent.CLICK, stopPropagationIfNotInteractable, true);
@@ -65,8 +70,15 @@ public class ControlBar extends UIComponent {
 			addChild(stopButton);
 		}
 
+		if (!playheadTime) {
+			playheadTime = new Label();
+			playheadTime.text = "0:00:00";
+			addChild(playheadTime);
+		}
+
 		if (!playheadSlider) {
 			playheadSlider = new FXProgressSlider();
+			playheadSlider.progress = 100;
 			playheadSlider.addEventListener(MouseEvent.MOUSE_DOWN, onPlayheadSliderMouseDown);
 			playheadSlider.addEventListener(SliderEvent.CHANGE, onPlayheadSliderChange);
 			addChild(playheadSlider);
@@ -102,23 +114,32 @@ public class ControlBar extends UIComponent {
     }
   }
 
-  override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
-		super.updateDisplayList(unscaledWidth, unscaledHeight);
 
-		playPauseButton.setActualSize(playPauseButton.measuredWidth, playPauseButton.measuredHeight);
-		stopButton.setActualSize(stopButton.measuredWidth, stopButton.measuredHeight);
-		volumeButton.setActualSize(volumeButton.measuredWidth, volumeButton.measuredHeight);
-		var slidersWidth:Number = unscaledWidth - (playPauseButton.width + stopButton.width + volumeButton.width);
+	private function resizeAsPreferred(... components):int {
+		var linearWidth:int = 0;
+		components.forEach(function(component:UIComponent, index:Object, array:Object):void {
+			component.setActualSize(component.measuredWidth, component.measuredHeight);
+			linearWidth += component.width;
+		}, null);
+		return linearWidth;
+	}
+
+	private function layoutLinearly(unscaledHeight:Number, startX:int = 0, ... components):void {
+		components.forEach(function(component:UIComponent, index:Object, array:Object):void {
+			component.move(startX, (unscaledHeight - component.height) / 2);
+			startX += component.width;
+		});
+	}
+
+	override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
+		super.updateDisplayList(unscaledWidth, unscaledHeight);
+		var othersWidth:int = resizeAsPreferred(playPauseButton, stopButton, playheadTime, volumeButton);
+		var slidersWidth:Number = unscaledWidth - othersWidth;
 		var volumeSliderToSlidersWidthRatio:Number = 0.3;
 		var volumeSliderWidth:Number = Math.min(Math.floor(slidersWidth * volumeSliderToSlidersWidthRatio), 100);
 		playheadSlider.setActualSize(slidersWidth - volumeSliderWidth, playheadSlider.measuredHeight);
 		volumeSlider.setActualSize(volumeSliderWidth, volumeSlider.measuredHeight);
-
-		playPauseButton.move(0, (unscaledHeight - playPauseButton.height) / 2);
-		stopButton.move(playPauseButton.width, stopButton.y = (unscaledHeight - stopButton.height) / 2);
-		playheadSlider.move(stopButton.x + stopButton.width, (unscaledHeight - playheadSlider.height) / 2);
-		volumeButton.move(playheadSlider.x + playheadSlider.width, (unscaledHeight - volumeButton.height) / 2);
-		volumeSlider.move(volumeButton.x + volumeButton.width, (unscaledHeight - volumeSlider.height) / 2);
+		layoutLinearly(unscaledHeight, 0, playPauseButton, stopButton, playheadTime, playheadSlider, volumeButton, volumeSlider);
 	}
 
 	/* Our methods */
@@ -202,8 +223,7 @@ public class ControlBar extends UIComponent {
   }
 
   private function onPlayheadSliderChange(event:SliderEvent):void {
-    log.debug("Seek: " + playheadSlider.value + ". Enabling playhead slider updates");
-    mayUpdatePlayheadSlider = true;
+    log.debug("Seek: " + playheadSlider.value);
     _videoDisplay.playheadTime = playheadSlider.value;
   }
 
@@ -233,18 +253,46 @@ public class ControlBar extends UIComponent {
     if (playing || paused || stopped) {
       playPauseButton.state = playing ? "pause" : "play";      
     }
+		if (playing) {
+			if (seeking) {
+				log.debug("Seeking complete. Enabling playhead slider updates");
+				seeking = false;
+				mayUpdatePlayheadSlider = true;
+			}
+		}
+		if (state == VideoPlayer.SEEKING) {
+			log.debug("Seeking started");
+			seeking = true;
+		}
     initializeControls();
 	}
 
   private function onVideoDisplayPlayheadUpdate(event:VideoEvent):void {
     log.debug("Playhead updated. cs=" + _videoDisplay.state + ", es=" + event.state + ", ct=" + _videoDisplay.playheadTime + ", et=" + event.playheadTime);
     if ((_videoDisplay.state == VideoPlayer.PLAYING) && mayUpdatePlayheadSlider) {
-      log.debug("Updating playhead slider: " + _videoDisplay.playheadTime);
-      playheadSlider.value = _videoDisplay.playheadTime;
+			var time:Number = _videoDisplay.playheadTime;
+			log.debug("Updating playhead slider: " + time);
+      playheadSlider.value = time;
+			playheadTime.text = formatTime(time) + "/" + formatTime(_videoDisplay.totalTime);
+			invalidateDisplayList();
     } else {
       log.debug("Ignoring playhead slider update: " + _videoDisplay.playheadTime);
     }
   }
+
+	private function formatTime(time:Number):String {
+		var hours:int = Math.floor(time / 3600);
+		var fullMinutes:int = Math.floor((time / 60) % 3600);
+		var fullSeconds:int = Math.floor(time % 60);
+		var result:String = ((fullSeconds < 10) && (fullMinutes > 0) && (hours > 0) ? "0" : "") + fullSeconds;
+		if (fullMinutes > 0) {
+			result = ((fullMinutes < 10) && (hours > 0) ? "0" : "") + fullMinutes + ":" + result;
+		}
+		if (hours > 0) {
+			result = hours + ":" + result;
+		}
+		return result;
+	}
 
   private function onVideoDisplayProgress(event:ProgressEvent):void {
     log.debug("Progress: " + _videoDisplay.bytesLoaded + "/" + _videoDisplay.bytesTotal);
