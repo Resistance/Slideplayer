@@ -12,7 +12,7 @@
     private var _imageData:Array = [];
     private var _videoSource:String;
     private var _config:String = "slideplayer-config.xml";
-    private var _lectureTitle:String = "loeng12";
+    private var _lectureTitle:String = "loeng13";
 
     private function init():void {
       initializeLogging();

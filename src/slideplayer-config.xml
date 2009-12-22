@@ -4,7 +4,55 @@
     <slide time="0" file="slaid0.png"/>
     <slide time="10" file="slaid1.png"/>
   </lecture>
-  <lecture title="loeng13" file="loeng13.flv">
-    <slide time="0" file="slaid0.png"/>
+  <lecture title="loeng13" file="loeng13_lyhike.flv">
+		<slide time="0" file="slaid0.png"/>
+		<slide time="24" file="slaid1.png"/>
+		<slide time="52" file="slaid2.png"/>
+		<slide time="61" file="slaid3.png"/>
+		<slide time="66" file="slaid4.png"/>
+		<slide time="69" file="slaid5.png"/>
+		<slide time="77" file="slaid6.png"/>
+		<slide time="90" file="slaid7.png"/>
+		<slide time="95" file="slaid8.png"/>
+		<slide time="102" file="slaid9.png"/>
+		<slide time="108" file="slaid10.png"/>
+		<slide time="115" file="slaid11.png"/>
+		<slide time="120" file="slaid12.png"/>
+		<slide time="127" file="slaid13.png"/>
+		<slide time="155" file="slaid14.png"/>
+		<slide time="165" file="slaid15.png"/>
+		<slide time="184" file="slaid16.png"/>
+		<slide time="204" file="slaid17.png"/>
+		<slide time="238" file="slaid18.png"/>
+		<slide time="290" file="slaid19.png"/>
+		<slide time="315" file="slaid20.png"/>
+		<slide time="385" file="slaid21.png"/>
+		<slide time="393" file="slaid22.png"/>
+		<slide time="400" file="slaid23.png"/>
+		<slide time="410" file="slaid24.png"/>
+		<slide time="417" file="slaid25.png"/>
+		<slide time="440" file="slaid26.png"/>
+		<slide time="500" file="slaid27.png"/>
+		<slide time="714" file="slaid28.png"/>
+		<slide time="730" file="slaid29.png"/>
+		<slide time="750" file="slaid30.png"/>
+		<slide time="780" file="slaid31.png"/>
+		<slide time="880" file="slaid32.png"/>
+		<slide time="956" file="slaid33.png"/>
+		<slide time="988" file="slaid34.png"/>
+		<slide time="997" file="slaid35.png"/>
+		<slide time="1042" file="slaid36.png"/>
+		<slide time="1175" file="slaid37.png"/>
+		<slide time="1380" file="slaid38.png"/>
+		<slide time="1472" file="slaid37.png"/>
+		<slide time="1467" file="slaid38.png"/>
+		<slide time="1500" file="slaid39.png"/>
+		<slide time="1548" file="slaid40.png"/>
+		<slide time="1610" file="slaid41.png"/>
+		<slide time="1707" file="slaid42.png"/>
+		<slide time="1847" file="slaid43.png"/>
+		<slide time="1875" file="slaid44.png"/>
+		<slide time="2022" file="slaid45.png"/>
+		<slide time="2060" file="slaid46.png"/>
   </lecture>
 </config>
