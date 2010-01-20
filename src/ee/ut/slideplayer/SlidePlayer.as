@@ -3,8 +3,10 @@ import com.fxcomponents.controls.FXVideo;
 
 import flash.events.HTTPStatusEvent;
 
+import mx.collections.ArrayList;
 import mx.controls.Alert;
 import mx.controls.Image;
+import mx.controls.List;
 import mx.controls.VideoDisplay;
 import mx.controls.videoClasses.VideoPlayer;
 import mx.core.UIComponent;
@@ -16,7 +18,7 @@ import mx.rpc.events.ResultEvent;
 import mx.rpc.http.HTTPService;
 
 public class SlidePlayer extends UIComponent {
-  private var image:Image;
+  private var images:Array;
   private var video:VideoDisplay;
   private var controlBar:ControlBar;
 
@@ -40,16 +42,19 @@ public class SlidePlayer extends UIComponent {
   override protected function createChildren():void {
     super.createChildren();
 
-    image = new Image();
-    image.width = 640;
-    image.height = 480;
-    addChild(image);
+    images = new Array(new Image(), new Image());
+    for (var i in images) {
+      images[i].width = 640;
+      images[i].height = 480;
+      (images[i] as Image).visible = false;
+      addChild(images[i]);
+    }
 
     video = new VideoDisplay();
     video.width = 120;
     video.height = 90;
     video.source = videoSource;
-    video.x = image.width-video.width;
+    video.x = images[0].width-video.width;
     video.autoPlay = false;
     addChild(video);
 
@@ -66,9 +71,12 @@ public class SlidePlayer extends UIComponent {
 
     var controlBarHeight:Number = 21;
 
-    image.setActualSize(unscaledWidth, unscaledHeight-controlBarHeight);
-    image.move(0, 0);
+    for (var i in images) {
+      (images[i] as Image).setActualSize(unscaledWidth, unscaledHeight-controlBarHeight);
+      (images[i] as Image).move(0, 0);
+    }
 
+    var image:Image = images[0] as Image;
 //    video.setActualSize(Math.floor(image.width/4),Math.floor(image.height/4));
     video.setActualSize(320, 240);
     video.move(image.width-video.width, image.y);
@@ -78,7 +86,7 @@ public class SlidePlayer extends UIComponent {
   }
 
   public function stuff():String {
-    log.debug("image: " + image.enabled.toString());
+//    log.debug("image: " + image.enabled.toString());
     log.debug("video: " + video.enabled.toString());
     log.debug("controlBar: " + controlBar.enabled.toString());
     return "";
@@ -104,11 +112,14 @@ public class SlidePlayer extends UIComponent {
 
   public function onVideoPlayheadUpdate(event:VideoEvent):void {
     if (video.playheadTime >= imageData[nextImageId].time) {
-      if (image.source != imageData[nextImageId].source) {
-        image.source = imageData[nextImageId].source;
-      }
+      var currentImage:Image = images[(nextImageId+1) % 2] as Image;
+      var nextImage:Image = images[nextImageId % 2] as Image;
+
+      nextImage.visible = true;
+      currentImage.visible = false;
       if (nextImageId < imageData.length - 1) {
         nextImageId++;
+        currentImage.source = _imageData[nextImageId].source;
       }
     }
   }
@@ -117,13 +128,15 @@ public class SlidePlayer extends UIComponent {
     if (video.state == VideoPlayer.PLAYING || video.state == VideoPlayer.PAUSED) {
       for (var i:int = 0; i < _imageData.length; i++) {
         if (video.playheadTime < _imageData[i].time) {
-          image.source = _imageData[i-1].source;
           nextImageId = i;
+          (images[(nextImageId+1) % 2] as Image).source = _imageData[nextImageId-1].source;
+          (images[nextImageId % 2] as Image).source = _imageData[nextImageId].source;
           break;
         }
       }
     } else if (video.state == VideoPlayer.STOPPED) {
       nextImageId = 0;
+      images[nextImageId % 2].source = _imageData[nextImageId].source;
       onVideoPlayheadUpdate(null);
     }
   }
