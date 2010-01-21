@@ -30,6 +30,7 @@ public class SlidePlayer extends UIComponent {
   private var _imageDataChanged:Boolean;
 
   private var nextImageId:int;
+  private var _normalLayout:Boolean = true; // normal = large slide, small video
 
   private var log:ILogger = Log.getLogger("ee.ut.slideplayer.SlidePlayer");
 
@@ -43,7 +44,7 @@ public class SlidePlayer extends UIComponent {
     super.createChildren();
 
     images = new Array(new Image(), new Image());
-    for (var i in images) {
+    for (var i:int = 0; i < images.length; i++) {
       images[i].width = 640;
       images[i].height = 480;
       (images[i] as Image).visible = false;
@@ -71,17 +72,47 @@ public class SlidePlayer extends UIComponent {
 
     var controlBarHeight:Number = 21;
 
-    for (var i in images) {
-      (images[i] as Image).setActualSize(unscaledWidth, unscaledHeight-controlBarHeight);
-      (images[i] as Image).move(0, 0);
+    var imageWidth:Number = unscaledWidth;
+    var imageHeight:Number = unscaledHeight-controlBarHeight;
+    var imageX:Number = 0;
+    var imageY:Number = 0;
+    var videoWidth: Number = 320;
+    var videoHeight: Number = 240;
+    var videoX:Number = imageWidth-videoWidth;
+    var videoY:Number = imageY;
+
+    if (_normalLayout) {
+      addChild(video);
+    } else {
+      for (var o:int = 0; o < images.length; o++) {
+        addChild(images[o]);
+      }
+
+      var tempWidth:Number = imageWidth;
+      var tempHeight:Number = imageHeight;
+      var tempX:Number = imageX;
+      var tempY:Number = imageY;
+
+      imageWidth = videoWidth;
+      imageHeight = videoHeight;
+      imageX = videoX;
+      imageY = videoY;
+
+      videoWidth = tempWidth;
+      videoHeight = tempHeight;
+      videoX = tempX;
+      videoY = tempY;
     }
 
-    var image:Image = images[0] as Image;
-//    video.setActualSize(Math.floor(image.width/4),Math.floor(image.height/4));
-    video.setActualSize(320, 240);
-    video.move(image.width-video.width, image.y);
+    for (var i:int = 0; i < images.length; i++) {
+      (images[i] as Image).setActualSize(imageWidth, imageHeight);
+      (images[i] as Image).move(imageX, imageY);
+    }
 
-    controlBar.move(0, image.height);
+    video.setActualSize(videoWidth, videoHeight);
+    video.move(videoX, videoY);
+
+    controlBar.move(0, unscaledHeight-controlBarHeight);
     controlBar.setActualSize(unscaledWidth, controlBarHeight);
   }
 
@@ -135,6 +166,7 @@ public class SlidePlayer extends UIComponent {
         }
       }
     } else if (video.state == VideoPlayer.STOPPED) {
+      // this is also fired on initial video loading
       nextImageId = 0;
       images[nextImageId % 2].source = _imageData[nextImageId].source;
       onVideoPlayheadUpdate(null);
@@ -162,6 +194,17 @@ public class SlidePlayer extends UIComponent {
     _imageData = value;
     _imageDataChanged = true;
     invalidateProperties();
+  }
+
+  public function toggleLayout():void {
+    _normalLayout = !_normalLayout;
+    invalidateDisplayList();
+  }
+
+  private function swap(a:Object, b:Object):void {
+    var c:Object = a;
+    a = b;
+    b = c;
   }
 }
 }
