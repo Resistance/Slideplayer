@@ -12,6 +12,7 @@ import flash.events.MouseEvent;
 import flash.events.ProgressEvent;
 
 import mx.controls.Label;
+import mx.controls.Text;
 import mx.controls.VideoDisplay;
 import mx.controls.videoClasses.VideoPlayer;
 import mx.core.UIComponent;
@@ -27,7 +28,7 @@ public class ControlBar extends UIComponent {
 
   protected var stopButton:StopButton;
 
-	protected var playheadTime:Label;
+	protected var playheadTime:Text;
 
   protected var playheadSlider:FXProgressSlider;
 
@@ -82,8 +83,10 @@ public class ControlBar extends UIComponent {
 		}
 
 		if (!playheadTime) {
-			playheadTime = new Label();
-			playheadTime.text = "0:00:00";
+			playheadTime = new Text();
+			playheadTime.text = "0:00:00\n0:00:00";
+      playheadTime.setStyle("fontSize", 8);
+      playheadTime.selectable = false;
       insertControl(2, playheadTime);
 		}
 
@@ -169,7 +172,7 @@ public class ControlBar extends UIComponent {
     var widthLeft:int = unscaledWidth - resizeAsPreferred(preferredSizedControls);
     var stretchingControls:Array = new Array();
     var stretchingControlSizingProperties:Array = new Array();
-    controls.forEach(function(control:UIComponent, index:int, array:Array) {
+    controls.forEach(function(control:UIComponent, index:int, array:Array):void {
       var sizingProperties:Object = controlSizingProperties[index];
       if ((sizingProperties != null) && (sizingProperties.width != undefined)) {
         stretchingControls.push(control);
@@ -289,7 +292,7 @@ public class ControlBar extends UIComponent {
 
 	private function onVideoDisplayStateChange(event:VideoEvent):void {
     var state:String = _videoDisplay.state;
-    var playing:Boolean = state == VideoPlayer.PLAYING;
+    var playing:Boolean = _videoDisplay.playing;
     var paused:Boolean = state == VideoPlayer.PAUSED;
     var stopped:Boolean = state == VideoPlayer.STOPPED;
     log.debug("State changed. cs=" + state + ", es=" + event.state + ", ct=" + _videoDisplay.playheadTime + ", et=" + event.playheadTime);
@@ -316,25 +319,33 @@ public class ControlBar extends UIComponent {
 			var time:Number = _videoDisplay.playheadTime;
 			log.debug("Updating playhead slider: " + time);
       playheadSlider.value = time;
-			playheadTime.text = formatTime(time) + "/" + formatTime(_videoDisplay.totalTime);
+			playheadTime.text = formatTime(time, _videoDisplay.totalTime);
 			invalidateDisplayList();
     } else {
       log.debug("Ignoring playhead slider update: " + _videoDisplay.playheadTime);
     }
   }
 
-	private function formatTime(time:Number):String {
-		var hours:int = Math.floor(time / 3600);
-		var fullMinutes:int = Math.floor((time / 60) % 3600);
-		var fullSeconds:int = Math.floor(time % 60);
-		var result:String = ((fullSeconds < 10) && (fullMinutes > 0) && (hours > 0) ? "0" : "") + fullSeconds;
-		if (fullMinutes > 0) {
-			result = ((fullMinutes < 10) && (hours > 0) ? "0" : "") + fullMinutes + ":" + result;
+	private function formatTime(current:Number, total:Number):String {
+    var totalHours:int = Math.floor(total / 3600);
+    var totalFullMinutes:int = Math.floor((total / 60) % 3600);
+    var totalFullSeconds:int = Math.floor(total % 60);
+    var hasHours:Boolean = totalHours > 0;
+    var hasMinutes:Boolean = totalFullMinutes > 0;
+    var totalResult:String = ((totalFullSeconds < 10) && (hasMinutes || hasHours) ? "0" : "") + totalFullSeconds;
+		var currentHours:int = Math.floor(current / 3600);
+		var currentFullMinutes:int = Math.floor((current / 60) % 3600);
+		var currentFullSeconds:int = Math.floor(current % 60);
+		var currentResult:String = ((currentFullSeconds < 10) && (hasMinutes || hasHours) ? "0" : "") + currentFullSeconds;
+		if (hasMinutes) {
+			totalResult = ((totalFullMinutes < 10) && hasHours ? "0" : "") + totalFullMinutes + ":" + totalResult;
+			currentResult = ((currentFullMinutes < 10) && hasHours ? "0" : "") + currentFullMinutes + ":" + currentResult;
 		}
-		if (hours > 0) {
-			result = hours + ":" + result;
+		if (hasHours) {
+			totalResult = totalHours + ":" + totalResult;
+			currentResult = currentHours + ":" + currentResult;
 		}
-		return result;
+		return currentResult + "\n" + totalResult;
 	}
 
   private function onVideoDisplayProgress(event:ProgressEvent):void {
