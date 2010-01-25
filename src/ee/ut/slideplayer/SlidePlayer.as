@@ -19,7 +19,7 @@ import mx.rpc.http.HTTPService;
 
 public class SlidePlayer extends UIComponent {
   private var images:Array;
-  private var video:VideoDisplay;
+  private var video:EVideoDisplay;
   private var controlBar:ControlBar;
 
   private var _videoSource:String;
@@ -51,7 +51,7 @@ public class SlidePlayer extends UIComponent {
       addChild(images[i]);
     }
 
-    video = new VideoDisplay();
+    video = new EVideoDisplay();
     video.width = 120;
     video.height = 90;
     video.source = videoSource;
@@ -71,46 +71,36 @@ public class SlidePlayer extends UIComponent {
     super.updateDisplayList(unscaledWidth, unscaledHeight);
 
     var controlBarHeight:Number = 21;
+    var aspectRatio:Number = unscaledWidth/(unscaledHeight-controlBarHeight);
 
-    var imageWidth:Number = unscaledWidth;
-    var imageHeight:Number = unscaledHeight-controlBarHeight;
-    var imageX:Number = 0;
-    var imageY:Number = 0;
-    var videoWidth: Number = 320;
-    var videoHeight: Number = 240;
-    var videoX:Number = imageWidth-videoWidth;
-    var videoY:Number = imageY;
-
+    var i:int;
     if (_normalLayout) {
+      for (i = 0; i < images.length; i++) {
+        (images[i] as Image).setActualSize(unscaledWidth, unscaledHeight-controlBarHeight);
+        (images[i] as Image).move(0, 0);
+      }
+
+      video.setActualSize(320, 240);
+      video.move(unscaledWidth-video.width, 0);
+
       addChild(video);
     } else {
+      for (i = 0; i < images.length; i++) {
+        (images[i] as Image).setActualSize(320, 240);
+        (images[i] as Image).move(unscaledWidth-images[i].width, 0);
+      }
+
+      if (aspectRatio > video.aspectRatio) {
+        video.setActualSize((unscaledHeight-controlBarHeight)*video.aspectRatio, unscaledHeight-controlBarHeight);
+      } else {
+        video.setActualSize(unscaledWidth, unscaledWidth/video.aspectRatio);
+      }
+      video.move(0, 0);
+
       for (var o:int = 0; o < images.length; o++) {
         addChild(images[o]);
       }
-
-      var tempWidth:Number = imageWidth;
-      var tempHeight:Number = imageHeight;
-      var tempX:Number = imageX;
-      var tempY:Number = imageY;
-
-      imageWidth = videoWidth;
-      imageHeight = videoHeight;
-      imageX = videoX;
-      imageY = videoY;
-
-      videoWidth = tempWidth;
-      videoHeight = tempHeight;
-      videoX = tempX;
-      videoY = tempY;
     }
-
-    for (var i:int = 0; i < images.length; i++) {
-      (images[i] as Image).setActualSize(imageWidth, imageHeight);
-      (images[i] as Image).move(imageX, imageY);
-    }
-
-    video.setActualSize(videoWidth, videoHeight);
-    video.move(videoX, videoY);
 
     controlBar.move(0, unscaledHeight-controlBarHeight);
     controlBar.setActualSize(unscaledWidth, controlBarHeight);
