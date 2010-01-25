@@ -49,6 +49,10 @@ public class ControlBar extends UIComponent {
 
 	private var seeking:Boolean;
 
+  private var controls:Array = new Array();
+
+  private var controlSizingProperties:Array = new Array();
+
   public function ControlBar() {
     addEventListener(MouseEvent.CLICK, stopPropagationIfNotInteractable, true);
     addEventListener(MouseEvent.MOUSE_DOWN, stopPropagationIfNotInteractable, true);
@@ -56,24 +60,31 @@ public class ControlBar extends UIComponent {
 
 	/* Common component methods */
 
+  public function insertControl(index:int, control:UIComponent, sizingProperties:Object = null):void {
+    controls.splice(index, 0, control);
+    controlSizingProperties.splice(index, 0, sizingProperties);
+    addChild(control);
+    invalidateDisplayList();
+  }
+
 	override protected function createChildren():void {
 		if (!playPauseButton) {
 			playPauseButton = new PlayPauseButton();
 			playPauseButton.state = "play";
 			playPauseButton.addEventListener(MouseEvent.CLICK, onPlayPauseButtonClick);
-			addChild(playPauseButton);
+      insertControl(0, playPauseButton);
 		}
 
 		if (!stopButton) {
 			stopButton = new StopButton();
 			stopButton.addEventListener(MouseEvent.CLICK, onStopButtonClick);
-			addChild(stopButton);
+      insertControl(1, stopButton);
 		}
 
 		if (!playheadTime) {
 			playheadTime = new Label();
 			playheadTime.text = "0:00:00";
-			addChild(playheadTime);
+      insertControl(2, playheadTime);
 		}
 
 		if (!playheadSlider) {
@@ -81,13 +92,13 @@ public class ControlBar extends UIComponent {
 			playheadSlider.progress = 100;
 			playheadSlider.addEventListener(MouseEvent.MOUSE_DOWN, onPlayheadSliderMouseDown);
 			playheadSlider.addEventListener(SliderEvent.CHANGE, onPlayheadSliderChange);
-			addChild(playheadSlider);
+      insertControl(3, playheadSlider, {});
 		}
 
 		if (!volumeButton) {
 			volumeButton = new VolumeButton();
 			volumeButton.addEventListener(MouseEvent.CLICK, onVolumeButtonClick);
-			addChild(volumeButton);
+      insertControl(4, volumeButton);
 		}
 
 		if (!volumeSlider) {
@@ -95,7 +106,7 @@ public class ControlBar extends UIComponent {
 			volumeSlider.maximum = 1;
 			volumeSlider.value = volumeSlider.maximum / 2;
 			volumeSlider.addEventListener(SliderEvent.CHANGE, onVolumeSliderChange);
-			addChild(volumeSlider);
+      insertControl(5, volumeSlider, {width: 0.3, maxWidth: 100});
 		}
 
 		super.createChildren();
@@ -115,31 +126,63 @@ public class ControlBar extends UIComponent {
   }
 
 
-	private function resizeAsPreferred(... components):int {
-		var linearWidth:int = 0;
-		components.forEach(function(component:UIComponent, index:Object, array:Object):void {
+	private static function resizeAsPreferred(components:Array):Number {
+		var width:Number = 0;
+		components.forEach(function(component:UIComponent, index:Object, array:Array):void {
 			component.setActualSize(component.measuredWidth, component.measuredHeight);
-			linearWidth += component.width;
+			width += component.width;
 		}, null);
-		return linearWidth;
+		return width;
 	}
 
-	private function layoutLinearly(unscaledHeight:Number, startX:int = 0, ... components):void {
-		components.forEach(function(component:UIComponent, index:Object, array:Object):void {
+  private static function resizeAsSpecified(components:Array, controlSizingProperties:Array, width:Number):Number {
+    var left:Number = width;
+    components.forEach(function(component:UIComponent, index:int, array:Array):void {
+      var sizingProperties:Object = controlSizingProperties[index];
+      var controlWidth:Number = width * sizingProperties.width;
+      if (sizingProperties.maxWidth != undefined)
+        controlWidth = Math.min(controlWidth, sizingProperties.maxWidth);
+      component.setActualSize(controlWidth, component.measuredHeight);
+      left -= component.width;
+    });
+    return left;
+  }
+
+  private static function resizeEvely(components:Array, width:Number):void {
+    components.forEach(function(component:UIComponent, index:int, array:Array):void {
+      component.setActualSize(width / components.length, component.measuredHeight);
+    });
+  }
+
+	private static function layoutLinearly(unscaledHeight:Number, components:Array, startX:Number = 0):void {
+		components.forEach(function(component:UIComponent, index:Object, array:Array):void {
 			component.move(startX, (unscaledHeight - component.height) / 2);
 			startX += component.width;
 		});
 	}
 
-	override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
+  override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
 		super.updateDisplayList(unscaledWidth, unscaledHeight);
-		var othersWidth:int = resizeAsPreferred(playPauseButton, stopButton, playheadTime, volumeButton);
-		var slidersWidth:Number = unscaledWidth - othersWidth;
-		var volumeSliderToSlidersWidthRatio:Number = 0.3;
-		var volumeSliderWidth:Number = Math.min(Math.floor(slidersWidth * volumeSliderToSlidersWidthRatio), 100);
-		playheadSlider.setActualSize(slidersWidth - volumeSliderWidth, playheadSlider.measuredHeight);
-		volumeSlider.setActualSize(volumeSliderWidth, volumeSlider.measuredHeight);
-		layoutLinearly(unscaledHeight, 0, playPauseButton, stopButton, playheadTime, playheadSlider, volumeButton, volumeSlider);
+    var preferredSizedControls:Array = controls.filter(function(control:UIComponent, index:int, array:Array):Boolean {
+      return controlSizingProperties[index] == null;
+    });
+    var widthLeft:int = unscaledWidth - resizeAsPreferred(preferredSizedControls);
+    var stretchingControls:Array = new Array();
+    var stretchingControlSizingProperties:Array = new Array();
+    controls.forEach(function(control:UIComponent, index:int, array:Array) {
+      var sizingProperties:Object = controlSizingProperties[index];
+      if ((sizingProperties != null) && (sizingProperties.width != undefined)) {
+        stretchingControls.push(control);
+        stretchingControlSizingProperties.push(sizingProperties);
+      }
+    });
+    widthLeft = resizeAsSpecified(stretchingControls, stretchingControlSizingProperties, widthLeft);
+    var evenlySizedControls:Array = controls.filter(function(control:UIComponent, index:int, array:Array):Boolean {
+      var sizingProperties:Object = controlSizingProperties[index];
+      return (sizingProperties != null) && (sizingProperties.width == undefined);
+    });
+    resizeEvely(evenlySizedControls, widthLeft);
+		layoutLinearly(unscaledHeight, controls);
 	}
 
 	/* Our methods */
