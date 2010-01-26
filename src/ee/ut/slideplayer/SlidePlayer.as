@@ -3,6 +3,8 @@ import com.fxcomponents.controls.FXVideo;
 
 import flash.events.HTTPStatusEvent;
 
+import flash.events.MouseEvent;
+
 import mx.collections.ArrayList;
 import mx.controls.Alert;
 import mx.controls.Image;
@@ -21,6 +23,7 @@ public class SlidePlayer extends UIComponent {
   private var images:Array;
   private var video:EVideoDisplay;
   private var controlBar:ControlBar;
+  private var layoutToggleButton:LayoutToggleButton;
 
   private var _videoSource:String;
   private var _imageSource:String;
@@ -62,9 +65,13 @@ public class SlidePlayer extends UIComponent {
     video.addEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoPlayheadUpdate);
     video.addEventListener(VideoEvent.STATE_CHANGE, onVideoStateChange);
 
+    layoutToggleButton = new LayoutToggleButton();
+    layoutToggleButton.addEventListener(MouseEvent.CLICK, onLayoutToggleButtonClick);
+
     controlBar = new ControlBar();
     controlBar.videoDisplay = video;
     addChild(controlBar);
+    controlBar.insertControl(6, layoutToggleButton);
   }
 
   override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
@@ -188,13 +195,13 @@ public class SlidePlayer extends UIComponent {
 
   public function toggleLayout():void {
     _normalLayout = !_normalLayout;
+    layoutToggleButton.state = _normalLayout ? "image" : "video";
     invalidateDisplayList();
   }
 
-  private function swap(a:Object, b:Object):void {
-    var c:Object = a;
-    a = b;
-    b = c;
+  private function onLayoutToggleButtonClick(event:MouseEvent):void {
+    toggleLayout();
   }
+
 }
 }
