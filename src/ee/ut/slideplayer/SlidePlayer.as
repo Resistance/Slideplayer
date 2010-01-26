@@ -1,23 +1,14 @@
 package ee.ut.slideplayer {
-import com.fxcomponents.controls.FXVideo;
-
-import flash.events.HTTPStatusEvent;
+import ee.ut.slideplayer.ControlBar;
 
 import flash.events.MouseEvent;
 
-import mx.collections.ArrayList;
-import mx.controls.Alert;
 import mx.controls.Image;
-import mx.controls.List;
-import mx.controls.VideoDisplay;
 import mx.controls.videoClasses.VideoPlayer;
 import mx.core.UIComponent;
-import mx.events.SliderEvent;
 import mx.events.VideoEvent;
 import mx.logging.ILogger;
 import mx.logging.Log;
-import mx.rpc.events.ResultEvent;
-import mx.rpc.http.HTTPService;
 
 public class SlidePlayer extends UIComponent {
   private var images:Array;

@@ -1,17 +1,15 @@
 package ee.ut.slideplayer {
+
 import com.fxcomponents.controls.FXProgressSlider;
 import com.fxcomponents.controls.FXSlider;
 import com.fxcomponents.controls.fxvideo.PlayPauseButton;
 import com.fxcomponents.controls.fxvideo.StopButton;
-
 import com.fxcomponents.controls.fxvideo.VolumeButton;
 
 import flash.events.Event;
 import flash.events.MouseEvent;
-
 import flash.events.ProgressEvent;
 
-import mx.controls.Label;
 import mx.controls.Text;
 import mx.controls.VideoDisplay;
 import mx.controls.videoClasses.VideoPlayer;
@@ -121,55 +119,19 @@ public class ControlBar extends UIComponent {
     if (videoDisplayChanged) {
       if (previousVideoDisplay)
         detach();
-      if (_videoDisplay)
+      if (_videoDisplay) {
         attach();
+      }
       previousVideoDisplay = undefined;
       videoDisplayChanged = false;
     }
   }
-
-
-	private static function resizeAsPreferred(components:Array):Number {
-		var width:Number = 0;
-		components.forEach(function(component:UIComponent, index:Object, array:Array):void {
-			component.setActualSize(component.measuredWidth, component.measuredHeight);
-			width += component.width;
-		}, null);
-		return width;
-	}
-
-  private static function resizeAsSpecified(components:Array, controlSizingProperties:Array, width:Number):Number {
-    var left:Number = width;
-    components.forEach(function(component:UIComponent, index:int, array:Array):void {
-      var sizingProperties:Object = controlSizingProperties[index];
-      var controlWidth:Number = width * sizingProperties.width;
-      if (sizingProperties.maxWidth != undefined)
-        controlWidth = Math.min(controlWidth, sizingProperties.maxWidth);
-      component.setActualSize(controlWidth, component.measuredHeight);
-      left -= component.width;
-    });
-    return left;
-  }
-
-  private static function resizeEvely(components:Array, width:Number):void {
-    components.forEach(function(component:UIComponent, index:int, array:Array):void {
-      component.setActualSize(width / components.length, component.measuredHeight);
-    });
-  }
-
-	private static function layoutLinearly(unscaledHeight:Number, components:Array, startX:Number = 0):void {
-		components.forEach(function(component:UIComponent, index:Object, array:Array):void {
-			component.move(startX, (unscaledHeight - component.height) / 2);
-			startX += component.width;
-		});
-	}
 
   override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
 		super.updateDisplayList(unscaledWidth, unscaledHeight);
     var preferredSizedControls:Array = controls.filter(function(control:UIComponent, index:int, array:Array):Boolean {
       return controlSizingProperties[index] == null;
     });
-    var widthLeft:int = unscaledWidth - resizeAsPreferred(preferredSizedControls);
     var stretchingControls:Array = new Array();
     var stretchingControlSizingProperties:Array = new Array();
     controls.forEach(function(control:UIComponent, index:int, array:Array):void {
@@ -179,13 +141,14 @@ public class ControlBar extends UIComponent {
         stretchingControlSizingProperties.push(sizingProperties);
       }
     });
-    widthLeft = resizeAsSpecified(stretchingControls, stretchingControlSizingProperties, widthLeft);
     var evenlySizedControls:Array = controls.filter(function(control:UIComponent, index:int, array:Array):Boolean {
       var sizingProperties:Object = controlSizingProperties[index];
       return (sizingProperties != null) && (sizingProperties.width == undefined);
     });
-    resizeEvely(evenlySizedControls, widthLeft);
-		layoutLinearly(unscaledHeight, controls);
+    var widthLeft:int = unscaledWidth - LayoutHelper.resizeAsPreferred(preferredSizedControls);
+    widthLeft = LayoutHelper.resizeAsSpecified(stretchingControls, stretchingControlSizingProperties, widthLeft);
+    LayoutHelper.resizeEvely(evenlySizedControls, widthLeft);
+		LayoutHelper.layoutLinearly(unscaledHeight, controls);
 	}
 
 	/* Our methods */
@@ -210,6 +173,8 @@ public class ControlBar extends UIComponent {
     _videoDisplay.addEventListener(VideoEvent.STATE_CHANGE, onVideoDisplayStateChange);
     _videoDisplay.addEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoDisplayPlayheadUpdate);
     _videoDisplay.addEventListener(ProgressEvent.PROGRESS, onVideoDisplayProgress);
+
+    dispatchEvent(new ControlBarEvent(ControlBarEvent.ATTACHED));
 	}
 
 	private function detach():void {
@@ -217,6 +182,8 @@ public class ControlBar extends UIComponent {
 		previousVideoDisplay.removeEventListener(VideoEvent.STATE_CHANGE, onVideoDisplayStateChange);
 		previousVideoDisplay.removeEventListener(VideoEvent.PLAYHEAD_UPDATE, onVideoDisplayPlayheadUpdate);
     previousVideoDisplay.removeEventListener(ProgressEvent.PROGRESS, onVideoDisplayProgress);
+
+    dispatchEvent(new ControlBarEvent(ControlBarEvent.DETACHED));
 	}
 
 	/* Properties */
@@ -251,9 +218,11 @@ public class ControlBar extends UIComponent {
 	private function onPlayPauseButtonClick(event:MouseEvent):void {
 		if (playPauseButton.state == "play") {
 			log.debug("Play");
+      dispatchEvent(new ControlBarEvent(ControlBarEvent.STARTING));
 			_videoDisplay.play();
 		} else {
 			log.debug("Pause");
+      dispatchEvent(new ControlBarEvent(ControlBarEvent.PAUSING));
 			_videoDisplay.pause();
 		}
 	}
@@ -270,6 +239,7 @@ public class ControlBar extends UIComponent {
 
   private function onPlayheadSliderChange(event:SliderEvent):void {
     log.debug("Seek: " + playheadSlider.value);
+    dispatchEvent(new ControlBarEvent(ControlBarEvent.SEEKING));
     _videoDisplay.playheadTime = playheadSlider.value;
   }
 
@@ -297,15 +267,23 @@ public class ControlBar extends UIComponent {
     var stopped:Boolean = state == VideoPlayer.STOPPED;
     log.debug("State changed. cs=" + state + ", es=" + event.state + ", ct=" + _videoDisplay.playheadTime + ", et=" + event.playheadTime);
     if (playing || paused || stopped) {
-      playPauseButton.state = playing ? "pause" : "play";      
+      playPauseButton.state = playing ? "pause" : "play";
     }
 		if (playing) {
 			if (seeking) {
 				log.debug("Seeking complete. Enabling playhead slider updates");
 				seeking = false;
 				mayUpdatePlayheadSlider = true;
+        dispatchEvent(new ControlBarEvent(ControlBarEvent.SEEKED));
 			}
+      dispatchEvent(new ControlBarEvent(ControlBarEvent.PLAYING));
 		}
+    if (paused) {
+      dispatchEvent(new ControlBarEvent(ControlBarEvent.PAUSED));
+    }
+    if (stopped) {
+      dispatchEvent(new ControlBarEvent(ControlBarEvent.STOPPED));
+    }
 		if (state == VideoPlayer.SEEKING) {
 			log.debug("Seeking started");
 			seeking = true;
