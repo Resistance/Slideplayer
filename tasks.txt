@@ -1,0 +1,2 @@
+TODO: When the stop button is pressed, the slider (seekbar) should also rewind (Riivo)
+TODO: Use some pattern as a backgroud image (Margus)
