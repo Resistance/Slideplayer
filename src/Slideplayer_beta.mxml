@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:sp="ee.ut.slideplayer.*" layout="absolute" initialize="init();">
   <mx:Script source="logging.as"/>
+  <mx:Style>
+    Image {
+      brokenImageSkin: Embed("broken.png");
+    }
+    Application {
+      background-color: #cacaca;
+      background-image: Embed("bg.jpg");
+      background-repeat: repeat;
+    }
+  </mx:Style>
 	<mx:Script>
 		<![CDATA[
 
