@@ -1,2 +1,4 @@
 TODO: When the stop button is pressed, the slider (seekbar) should also rewind (Riivo)
-TODO: Use some pattern as a backgroud image (Margus)
+TODO: When new lecture is loaded, the slider (seekbar) should change its (inner) length. (Riivo)
+
+DONE: Use some pattern as a backgroud image (Margus)

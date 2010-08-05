@@ -60,7 +60,7 @@ public class SlidePlayer extends UIComponent {
     layoutToggleButton.addEventListener(MouseEvent.CLICK, onLayoutToggleButtonClick);
 
     controlBar = new ControlBar();
-    controlBar.videoDisplay = video;
+//    controlBar.videoDisplay = video;
     addChild(controlBar);
     controlBar.insertControl(6, layoutToggleButton);
   }
@@ -121,16 +121,8 @@ public class SlidePlayer extends UIComponent {
     invalidateProperties();
   }
 
-  public function get imageSource():String {
-    return _imageSource;
-  }
-
-  public function set imageSource(value:String):void {
-    _imageSource = value;
-  }
-
   public function onVideoPlayheadUpdate(event:VideoEvent):void {
-    if (video.playheadTime >= imageData[nextImageId].time) {
+    if (nextImageId < imageData.length && video.playheadTime >= imageData[nextImageId].time) {
       var currentImage:Image = images[(nextImageId+1) % 2] as Image;
       var nextImage:Image = images[nextImageId % 2] as Image;
 
@@ -162,14 +154,25 @@ public class SlidePlayer extends UIComponent {
   }
 
   override protected function commitProperties():void {
+    log.debug("commitProperties");
     super.commitProperties();
 
     if (_imageDataChanged) {
+//      log.debug(_imageData.map(function(i) { return i.source}).join(', '));
       _imageDataChanged = false;
     }
 
     if (_videoSourceChanged) {
+
+      // If there is some video loaded, stop:
+      if (video.bytesLoaded > 0) {
+        video.stop();
+      }
       video.source = _videoSource;
+      video.load();
+//      video.invalidateProperties();
+      controlBar.videoDisplay = null; // HACK, so controlbar gets reattached
+      controlBar.videoDisplay = video;
       _videoSourceChanged = false;
     }
   }
@@ -194,5 +197,8 @@ public class SlidePlayer extends UIComponent {
     toggleLayout();
   }
 
+  public function stop():void {
+    video.stop();
+  }
 }
 }

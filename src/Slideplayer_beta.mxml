@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:sp="ee.ut.slideplayer.*" layout="absolute" initialize="init();">
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:sp="ee.ut.slideplayer.*" layout="absolute" initialize="init();" creationComplete="onCreationComplete()">
   <mx:Script source="logging.as"/>
   <mx:Style>
     Image {
@@ -14,6 +14,7 @@
 	<mx:Script>
 		<![CDATA[
 
+    import mx.controls.Alert;
     import mx.logging.ILogger;
     import mx.rpc.events.ResultEvent;
 
@@ -21,14 +22,46 @@
 
     private var _imageData:Array = [];
     private var _videoSource:String;
-    private var _config:String = "slideplayer-config.xml";
-    private var _lectureTitle:String = "loeng13";
+    private var _config:String = "";
+    private var _lectureTitle:String = "";
 
     private function init():void {
       initializeLogging();
 
-      configLoader.url = _config;
-      configLoader.send();
+      log.debug("Initialized");
+
+      // Read configuration info from application parameters:
+      /*
+      if (Application.application.parameters.lectureTitle != undefined) {
+        _lectureTitle = Application.application.parameters.lectureTitle;
+      }
+      */
+
+//      configLoader.url = _config;
+//      configLoader.send();
+    }
+
+    private function onCreationComplete():void {
+      log.debug("Creation complete");
+
+      // Add external callback
+      if (ExternalInterface.available) {
+        ExternalInterface.addCallback("changeLecture", changeLecture);
+      }
+    }
+
+    public function changeLecture(config:String, lecture:String):void {
+
+      if (config != _config || lecture != _lectureTitle) {
+        Alert.show("Config: " + config + "\nLecture: " + lecture);
+
+        _config = config;
+        _lectureTitle = lecture;
+
+//        slidePlayer.stop();
+        configLoader.url = _config;
+        configLoader.send();
+      }
     }
 
     private function parseLoadedConfig(event:ResultEvent):void {
@@ -36,9 +69,11 @@
       var lectures:XMLList = XML(event.result).lecture;
       for each (var lecture:XML in lectures) {
         if (lecture.attribute("title") == _lectureTitle) {
+          _videoSource = "";
           log.debug("Lecture: " + lecture.attribute("title") + ": " + lecture.attribute("file"));
           _videoSource = lecture.attribute("file").toString();
 
+          _imageData = [];
           for each (var slide:XML in lecture.slide) {
             log.debug("Adding slide: " + slide.attribute("file").toString() + " at time " + slide.attribute("time").toString());
             _imageData.push({
@@ -58,4 +93,6 @@
 	</mx:Script>
   <mx:HTTPService id="configLoader" method="get" resultFormat="e4x" result="parseLoadedConfig(event)"/>
   <sp:SlidePlayer id="slidePlayer" width="100%" height="100%" x="0" y="0"/>
+  <!--<mx:Button id="button12" label="Lecture 12" click="changeLecture('slideplayer-config.xml', 'loeng12')" x="0" y="0"/>-->
+  <!--<mx:Button id="button13" label="Lecture 13" click="changeLecture('slideplayer-config.xml', 'loeng13')" x="90" y="0"/>-->
 </mx:Application>
