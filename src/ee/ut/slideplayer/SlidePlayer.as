@@ -102,6 +102,7 @@ public class SlidePlayer extends UIComponent {
       }
       video.move(0, 0);
 
+      addChild(_swfLoader);
     }
 
     var ar:Number = 0.75;
