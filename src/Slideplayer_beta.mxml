@@ -88,6 +88,7 @@
 	</mx:Script>
   <mx:HTTPService id="configLoader" method="get" resultFormat="e4x" result="parseLoadedConfig(event)"/>
   <sp:SlidePlayer id="slidePlayer" width="100%" height="100%" x="0" y="0"/>
-  <mx:Button id="button12" label="Lecture 12" click="changeLecture('slideplayer-config.xml', 'loeng12')" x="0" y="0"/>
-  <mx:Button id="button13" label="Lecture 13" click="changeLecture('slideplayer-config.xml', 'loeng13')" x="90" y="0"/>
+  <mx:Button id="button6" label="Lecture 6" click="changeLecture('slideplayer-config.xml', 'loeng6')" x="0" y="0"/>
+  <mx:Button id="button12" label="Lecture 12" click="changeLecture('slideplayer-config.xml', 'loeng12')" x="90" y="0"/>
+  <mx:Button id="button13" label="Lecture 13" click="changeLecture('slideplayer-config.xml', 'loeng13')" x="180" y="0"/>
 </mx:Application>

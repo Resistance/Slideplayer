@@ -3,6 +3,8 @@ import flash.display.MovieClip;
 import flash.events.Event;
 import flash.events.MouseEvent;
 
+import mx.controls.ProgressBar;
+import mx.controls.ProgressBarMode;
 import mx.controls.SWFLoader;
 import mx.controls.videoClasses.VideoPlayer;
 import mx.core.UIComponent;
@@ -13,6 +15,7 @@ import mx.logging.Log;
 public class SlidePlayer extends UIComponent {
   private var _swfLoader:SWFLoader;
   private var _slidesMovie:MovieClip;
+  private var _progressBar:ProgressBar;
   private var video:EVideoDisplay;
   private var controlBar:ControlBar;
   private var layoutToggleButton:LayoutToggleButton;
@@ -41,9 +44,18 @@ public class SlidePlayer extends UIComponent {
     _swfLoader.width = 640;
     _swfLoader.height = 480;
     _swfLoader.scaleContent = true;
+    _swfLoader.maintainAspectRatio = true;
     addChild(_swfLoader);
 
     _swfLoader.addEventListener(Event.COMPLETE, onSWFLoaderComplete);
+
+    _progressBar = new ProgressBar();
+    _progressBar.width = 300;
+    _progressBar.source = _swfLoader;
+    _progressBar.mode = ProgressBarMode.POLLED;
+    _progressBar.label = "Slaidide laadimine... %3%%";
+    _progressBar.visible = false;
+    addChild(_progressBar);
 
     video = new EVideoDisplay();
     video.width = 120;
@@ -91,6 +103,11 @@ public class SlidePlayer extends UIComponent {
       video.move(0, 0);
 
     }
+
+    var ar:Number = 0.75;
+    var contentWidth:Number = _swfLoader.width*ar > _swfLoader.height ? _swfLoader.width*ar : _swfLoader.width;
+    _progressBar.setActualSize(_swfLoader.width/2, _progressBar.height);
+    _progressBar.move(_swfLoader.x + contentWidth/2 - _progressBar.width/2, _swfLoader.y + contentWidth*ar/2 - _progressBar.height/2);
 
     controlBar.move(0, unscaledHeight-controlBarHeight);
     controlBar.setActualSize(unscaledWidth, controlBarHeight);
@@ -156,6 +173,7 @@ public class SlidePlayer extends UIComponent {
     if (_slidesSourceChanged) {
       _swfLoader.unloadAndStop();
       _swfLoader.source = _slidesSource;
+      _progressBar.visible = true;
       _swfLoader.load();
 
       _slidesSourceChanged = false;
@@ -197,6 +215,8 @@ public class SlidePlayer extends UIComponent {
 
   private function onSWFLoaderComplete(event:Event):void {
     log.debug("SWFLoader loading completed");
+
+    _progressBar.visible = false;
 
     _slidesMovie = _swfLoader.content as MovieClip;
 
