@@ -8,6 +8,6 @@ print join('', map {
 	my ($timepart, $slidepart) = split ' ';
 	my ($hour, $minute, $second) = split ':', $timepart;
 	my $time = $hour * 3600 + $minute * 60 + $second;
-	my $slide = $slidepart - 1;
-	"\t\t<slide time=\"$time\" file=\"slaid$slide.png\"/>\n";
+	my $slide = $slidepart + 0;
+	"\t\t<slide time=\"$time\" number=\"$slide\"/>\n";
 } <>);
